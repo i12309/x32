@@ -1,5 +1,6 @@
 #pragma once
 #include "State/State.h"
+#include "Scene/SceneManager.h"
 
 class TableUp : public State {
 public:
@@ -7,22 +8,31 @@ public:
 
     void oneRun() override {
         State::oneRun();
-        startResult = App::scene().tableUp(Catalog::SPEED::Normal);
+        taskId = App::sceneManager().table().up();
     }
 
     State* run() override {
-        if (startResult == Catalog::TableActionResult::TriggerFault) {
-            return Factory(App::diag().addFatal(
-                State::ErrorCode::TABLE,
-                "Не удалось настроить стол"
-            ));
+        switch (App::sceneManager().status(taskId)) {
+            case SceneTaskStatus::Queued:
+            case SceneTaskStatus::Running:
+                return this;
+
+            case SceneTaskStatus::Done:
+                return Factory(State::Type::DONE);
+
+            case SceneTaskStatus::Timeout:
+                return Factory(App::diag().addFatal(State::ErrorCode::TABLE_NOT_UP, "CAN table task timeout"));
+
+            case SceneTaskStatus::Rejected:
+                return Factory(App::diag().addFatal(State::ErrorCode::TABLE, "CAN table task rejected"));
+
+            case SceneTaskStatus::Failed:
+            case SceneTaskStatus::Unknown:
+            default:
+                return Factory(App::diag().addFatal(State::ErrorCode::TABLE, "CAN table task failed"));
         }
-
-        if (App::scene().isTableRunning()) return this;
-
-        return Factory(State::Type::DONE);
     }
 
 private:
-    Catalog::TableActionResult startResult = Catalog::TableActionResult::Started;
+    SceneTaskId taskId = 0;
 };

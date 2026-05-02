@@ -1,6 +1,7 @@
 #pragma once
 
 #include "State/State.h"
+#include "Scene/SceneManager.h"
 
 class PaperMove : public State {
 public:
@@ -16,22 +17,30 @@ public:
         const Catalog::WorkParam params = App::plan().getCurrentParams();
 
         direction = params.hasDir ? params.dir : Catalog::DIR::Forward;
-        blocking = params.hasBlocking ? params.blocking : false;
         speed = params.hasSpeed ? params.speed : Catalog::SPEED::Normal;
 
         bool hasDistance = false;
-        int32_t steps = 0;
+        float distanceMm = 0.0f;
 
         if (params.hasSteps) {
             hasDistance = true;
-            steps = params.steps;
+            int32_t steps = params.steps;
             // Если направление явно не задано, берем его из знака шага.
             if (!params.hasDir && steps < 0) direction = Catalog::DIR::Backward;
+            if (steps < 0) steps = -steps;
+
+            if (Data::work.profile.RATIO_mm <= 0.0f) {
+                errorText = "PAPER_MOVE: невозможно конвертировать steps в mm, RATIO_mm не задан";
+                failed = true;
+                return;
+            }
+            distanceMm = static_cast<float>(steps) / Data::work.profile.RATIO_mm;
         } else if (params.hasMm) {
             hasDistance = true;
-            steps = params.mm*Data::work.profile.RATIO_mm;
-            // Если направление явно не задано, берем его из знака конвертации.
-            if (!params.hasDir && steps < 0) direction = Catalog::DIR::Backward;
+            distanceMm = params.mm;
+            // Если направление явно не задано, берем его из знака расстояния.
+            if (!params.hasDir && distanceMm < 0.0f) direction = Catalog::DIR::Backward;
+            if (distanceMm < 0.0f) distanceMm = -distanceMm;
         }
 
         if (!hasDistance) {
@@ -40,21 +49,18 @@ public:
             return;
         }
 
-        if (steps < 0) steps = -steps;
-        requestedSteps = steps;
+        requestedMm = (direction == Catalog::DIR::Backward) ? -distanceMm : distanceMm;
 
-        if (requestedSteps == 0) {
+        if (requestedMm == 0.0f) {
             started = true;
             return;
         }
 
-        App::scene().paperMove(requestedSteps, direction, speed, blocking);
+        taskId = App::sceneManager().paper().feed(requestedMm, speedMmS(speed));
         started = true;
     }
 
-    // Ожидание завершения движения.
-    // Если blocking=true, oneRun уже дождался завершения; здесь просто возвращаем DONE.
-    // Если blocking=false, ждем пока мотор бумаги остановится.
+    // Ожидание завершения scene-task на CAN-device.
     State* run() override {
         if (failed) {
             return Factory(App::diag().addError(State::ErrorCode::PAPER, errorText, "", false));
@@ -63,17 +69,41 @@ public:
         if (!started) {
             return Factory(App::diag().addError(State::ErrorCode::UNKNOWN_ERROR, "PAPER_MOVE: шаг не был запущен в oneRun", "", false));
         }
-        if (requestedSteps > 0 && App::scene().isPaperRunning()) return this;
 
-        return Factory(State::Type::DONE);
+        if (requestedMm == 0.0f) return Factory(State::Type::DONE);
+
+        switch (App::sceneManager().status(taskId)) {
+            case SceneTaskStatus::Queued:
+            case SceneTaskStatus::Running:
+                return this;
+
+            case SceneTaskStatus::Done:
+                return Factory(State::Type::DONE);
+
+            case SceneTaskStatus::Timeout:
+                return Factory(App::diag().addError(State::ErrorCode::PAPER_SEARCH, "CAN paper task timeout", "", false));
+
+            case SceneTaskStatus::Rejected:
+                return Factory(App::diag().addError(State::ErrorCode::PAPER, "CAN paper task rejected", "", false));
+
+            case SceneTaskStatus::Failed:
+            case SceneTaskStatus::Unknown:
+            default:
+                return Factory(App::diag().addError(State::ErrorCode::PAPER, "CAN paper task failed", "", false));
+        }
     }
 
 private:
+    static uint16_t speedMmS(Catalog::SPEED speed) {
+        (void)speed;
+        return 0;
+    }
+
+    SceneTaskId taskId = 0;
     Catalog::DIR direction = Catalog::DIR::Forward;
     Catalog::SPEED speed = Catalog::SPEED::Normal;
-    bool blocking = false;
     bool started = false;
     bool failed = false;
-    int32_t requestedSteps = 0;
+    float requestedMm = 0.0f;
     String errorText = "";
 };

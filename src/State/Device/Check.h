@@ -1,5 +1,6 @@
 #pragma once
 #include "State/State.h"
+#include "Scene/SceneManager.h"
 #include "Service/ESPUpdate.h"
 
 class A_CHECK : public State {
@@ -13,30 +14,57 @@ public:
         App::diag().clearErrors();
         App::diag().setCollecting(true);
 
-        PlanManager& plan = App::plan();
-        plan.beginPlan(this->type());
-        if (! Core::settings.CHECK_SYSTEM) return;
-        plan.add(State::Type::CHECK_PAPER);
-        plan.add(State::Type::CHECK_GUILLOTINE);
-        plan.add(State::Type::CHECK_TABLE);
+        if (!Core::settings.CHECK_SYSTEM) return;
 
-        plan.printPlan();
+        taskId = App::sceneManager().check().all();
     }
 
     State* run() override {
-        PlanManager& plan = App::plan();
-        if (!plan.hasPending()) {
-            plan.clear();
-            Stats::getInstance().save();
-            App::diag().setCollecting(false);
-            State::Type returnType = getNextTypeState();
-            setNexTypeState(State::Type::NULL_STATE);
-            if (returnType == State::Type::NULL_STATE) returnType = State::Type::IDLE;
-            if (App::diag().hasAny()) returnType = State::Type::ERROR;
-            ESPUpdate::getInstance().markCurrentFirmwareValid();
-            return Factory(returnType);
-        }
+        if (!Core::settings.CHECK_SYSTEM) return finish();
 
-        return Factory(plan.nextType(this->type()));
+        SceneTaskStatus status = App::sceneManager().status(taskId);
+        switch (status) {
+            case SceneTaskStatus::Queued:
+            case SceneTaskStatus::Running:
+                return this;
+
+            case SceneTaskStatus::Done:
+                return finish();
+
+            case SceneTaskStatus::Failed:
+                return fail("CAN device self-test failed");
+
+            case SceneTaskStatus::Timeout:
+                return fail("CAN device self-test timeout");
+
+            case SceneTaskStatus::Rejected:
+                return fail("CAN device rejected self-test");
+
+            case SceneTaskStatus::Unknown:
+            default:
+                return fail("CAN device self-test status is unknown");
+        }
+    }
+
+private:
+    SceneTaskId taskId = 0;
+
+    State* finish() {
+        Stats::getInstance().save();
+        App::diag().setCollecting(false);
+
+        State::Type returnType = getNextTypeState();
+        setNexTypeState(State::Type::NULL_STATE);
+        if (returnType == State::Type::NULL_STATE) returnType = State::Type::IDLE;
+        if (App::diag().hasAny()) returnType = State::Type::ERROR;
+
+        ESPUpdate::getInstance().markCurrentFirmwareValid();
+        return Factory(returnType);
+    }
+
+    State* fail(const String& message) {
+        App::diag().addError(State::ErrorCode::CHECK_FAILED, message, "", false);
+        App::diag().setCollecting(false);
+        return Factory(State::Type::ERROR);
     }
 };
