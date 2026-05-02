@@ -2,11 +2,9 @@
 
 #include <Arduino.h>
 
-#include "Screen/Panel/Model/MainModel.h"
-#include "Screen/Panel/Model/ServiceModel.h"
-#include "Screen/Panel/Model/TaskModel.h"
-
 namespace Screen {
+
+class Page;
 
 enum class PageId : uint8_t {
     None,
@@ -21,27 +19,33 @@ enum class PageId : uint8_t {
     Paper
 };
 
-struct PanelModel {
-    MainModel main;
-    TaskModel task;
-    ServiceModel service;
-};
-
 class Panel {
 public:
-    virtual ~Panel() = default;
+    bool init();
+    void process();
 
-    virtual bool init();
-    virtual void process();
-    virtual void show(PageId page);
+    void show(PageId page);
+    void show(Page& page);
+    void back();
+
+    void setLoadStatus(const String& text);
+    void setLoadProgressColor(uint8_t index, uint32_t color);
+    void showInfo(const String& text1,
+                  const String& text2,
+                  const String& text3,
+                  const String& okText,
+                  const String& cancelText,
+                  bool cancelVisible);
+    void showError(const String& title, const String& message);
 
     PageId activePage() const { return activePage_; }
-    PanelModel& model() { return model_; }
-    const PanelModel& model() const { return model_; }
+    Page* activePageObject() { return activePageObject_; }
+    const Page* activePageObject() const { return activePageObject_; }
 
-protected:
-    PanelModel model_;
+private:
     PageId activePage_ = PageId::None;
+    Page* activePageObject_ = nullptr;
+    Page* previousPageObject_ = nullptr;
 };
 
 } // namespace Screen

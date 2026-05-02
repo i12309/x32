@@ -2,15 +2,21 @@
 
 #include "Screen/Page/Page.h"
 
-namespace Screen::Main {
+namespace Screen {
 
 class load : public Page {
 public:
     using Page::Page;
+    static load& getInstance();
+
     PageId id() const override { return PageId::Load; }
 
-    void setStatus(const String& text) { model().main.load.statusText.setText(text); }
+    void setStatus(const String& text) { panel_.setLoadStatus(text); }
     void setProgressColor(uint8_t index, uint32_t color);
 };
 
-} // namespace Screen::Main
+namespace Main {
+using load = Screen::load;
+}
+
+} // namespace Screen

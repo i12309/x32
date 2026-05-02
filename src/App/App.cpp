@@ -13,7 +13,7 @@
 #include "Service/Log.h"
 #include "Service/Service.h"
 #include "Scene/SceneManager.h"
-#include "Screen/Panel/EezPanel.h"
+#include "Screen/Panel/Panel.h"
 #include "State/PlanManager.h"
 #include "State/Scene.h"
 #include "State/State.h"
@@ -26,7 +26,7 @@ CanRouter canRouter(canBus, deviceRegistry);
 MksCan mksCan(canBus);
 StmCan stmCan(canBus);
 SceneManager sceneManager(deviceRegistry);
-Screen::EezPanel screenPanel;
+Screen::Panel screenPanel;
 
 App::Context buildAppContext() {
     App::Context ctx;

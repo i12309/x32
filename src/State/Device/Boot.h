@@ -34,10 +34,7 @@ private:
         return ctx;
     }
 
-    static Screen::Main::load& loadPage() {
-        static Screen::Main::load page(App::panel());
-        return page;
-    }
+    static Screen::load& loadPage() { return Screen::load::getInstance(); }
 
     static void resetContext() {
         context() = BootContext();

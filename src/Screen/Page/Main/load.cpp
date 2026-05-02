@@ -1,10 +1,16 @@
 #include "Screen/Page/Main/load.h"
 
-namespace Screen::Main {
+#include "App/App.h"
 
-void load::setProgressColor(uint8_t index, uint32_t color) {
-    if (index >= 8) return;
-    model().main.load.progress[index].setColor(color);
+namespace Screen {
+
+load& load::getInstance() {
+    static load page(App::panel());
+    return page;
 }
 
-} // namespace Screen::Main
+void load::setProgressColor(uint8_t index, uint32_t color) {
+    panel_.setLoadProgressColor(index, color);
+}
+
+} // namespace Screen

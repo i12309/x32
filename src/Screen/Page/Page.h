@@ -10,11 +10,12 @@ public:
     virtual ~Page() = default;
 
     virtual PageId id() const = 0;
-    virtual void show() { panel_.show(id()); }
+    virtual void show() { panel_.show(*this); }
+    virtual void hide() {}
+    virtual void back() { panel_.back(); }
     virtual void process() {}
 
 protected:
-    PanelModel& model() { return panel_.model(); }
     Panel& panel_;
 };
 

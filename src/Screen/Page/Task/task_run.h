@@ -2,12 +2,18 @@
 
 #include "Screen/Page/Page.h"
 
-namespace Screen::Task {
+namespace Screen {
 
 class task_run : public Page {
 public:
     using Page::Page;
+    static task_run& getInstance();
+
     PageId id() const override { return PageId::TaskRun; }
 };
 
-} // namespace Screen::Task
+namespace Task {
+using task_run = Screen::task_run;
+}
+
+} // namespace Screen
