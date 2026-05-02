@@ -13,6 +13,8 @@ class DeviceError;
 class State;
 class Page;
 class PlanManager;
+class DeviceRegistry;
+class CanRouter;
 
 class App {
 public:
@@ -57,6 +59,11 @@ public:
             Scene* scene = nullptr;
         };
 
+        struct CanContext {
+            DeviceRegistry* devices = nullptr;
+            CanRouter* router = nullptr;
+        };
+
         struct UiContext {
             Page** activePage = nullptr;
             Page** previousPage = nullptr;
@@ -69,6 +76,7 @@ public:
         PlanContext plan;
         DiagnosticsContext diagnostics;
         MotionContext motion;
+        CanContext can;
         UiContext ui;
     };
 
@@ -84,12 +92,15 @@ public:
     static Machine& machine();
     static Registry& reg();
     static Scene& scene();
+    static DeviceRegistry& devices();
+    static CanRouter& can();
     static DeviceError& diag();
     static State*& state();
     static Catalog::Mode& mode();
     static PlanManager& plan();
 
     void init();
+    bool initCanDeviceLayer();
     void process();
 
     Context& context() { return context_; }

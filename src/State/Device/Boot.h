@@ -94,6 +94,7 @@ public:
         plan.addAction(State::Type::ACTION, &Boot::InitFileSystem, "InitFileSystem");
         plan.addAction(State::Type::ACTION, &Boot::InitNVS, "InitNVS");
         plan.addAction(State::Type::ACTION, &Boot::LoadConfig, "LoadConfig");
+        plan.addAction(State::Type::ACTION, &Boot::InitCanDeviceLayer, "InitCanDeviceLayer");
         plan.addAction(State::Type::ACTION, &Boot::ConnectWiFi, "ConnectWiFi");
         plan.addAction(State::Type::ACTION, &Boot::TryRecoverNextionIfMissing, "TryRecoverNextionIfMissing");
         plan.addAction(State::Type::ACTION, &Boot::UpdateESP, "UpdateESP");
@@ -239,6 +240,15 @@ private:
         setStatus("Подключение к Wi-Fi");
         BootContext& boot = context();
         boot.wifiConnected = (*App::cfg().connectWifi == 1) && WiFiConfig::getInstance().begin();
+        return true;
+    }
+
+    static bool InitCanDeviceLayer() {
+        setStatus("Инициализация CAN device");
+        if (!App::instance()->initCanDeviceLayer()) {
+            setStatusFail("Ошибка CAN device config");
+            requestAbort(State::Type::NULL_STATE);
+        }
         return true;
     }
 

@@ -4,6 +4,11 @@
 #include "Machine/Machine.h"
 #include "Controller/Registry.h"
 #include "Controller/Trigger.h"
+#include "Bus/Esp32TwaiBus.h"
+#include "Can/CanRouter.h"
+#include "Can/MksCan.h"
+#include "Can/StmCan.h"
+#include "Device/DeviceRegistry.h"
 #include "Service/DeviceError.h"
 #include "Service/Log.h"
 #include "Service/Service.h"
@@ -13,6 +18,12 @@
 #include "UI/Page.h"
 
 namespace {
+Esp32TwaiBus canBus;
+DeviceRegistry& deviceRegistry = DeviceRegistry::getInstance();
+CanRouter canRouter(canBus, deviceRegistry);
+MksCan mksCan(canBus);
+StmCan stmCan(canBus);
+
 App::Context buildAppContext() {
     App::Context ctx;
 
@@ -40,6 +51,8 @@ App::Context buildAppContext() {
     ctx.plan.manager = &PlanManager::instance();
     ctx.diagnostics.deviceError = &DeviceError::getInstance();
     ctx.motion.scene = &Scene::getInstance();
+    ctx.can.devices = &deviceRegistry;
+    ctx.can.router = &canRouter;
 
     ctx.ui.activePage = &Page::activePage;
     ctx.ui.previousPage = &Page::previousPage;
@@ -107,6 +120,30 @@ Scene& App::scene() {
     return Scene::getInstance();
 }
 
+DeviceRegistry& App::devices() {
+    App::Context* ctx = App::tryContext();
+    if (ctx == nullptr) {
+        Log::E("[App] Context is not initialized. Aborting.");
+        abort();
+    }
+    DeviceRegistry* devices = ctx->can.devices;
+    if (devices != nullptr) return *devices;
+    return DeviceRegistry::getInstance();
+}
+
+CanRouter& App::can() {
+    App::Context* ctx = App::tryContext();
+    if (ctx == nullptr) {
+        Log::E("[App] Context is not initialized. Aborting.");
+        abort();
+    }
+    CanRouter* router = ctx->can.router;
+    if (router != nullptr) return *router;
+
+    Log::E("[App] CanRouter is not initialized. Aborting.");
+    abort();
+}
+
 DeviceError& App::diag() {
     App::Context* ctx = App::tryContext();
     if (ctx == nullptr) {
@@ -151,11 +188,34 @@ PlanManager& App::plan() {
 
 void App::init() {
     Log::init();
+    canRouter.bindProtocol(&mksCan);
+    canRouter.bindProtocol(&stmCan);
     State::init();
     Trigger::init();
 }
 
+bool App::initCanDeviceLayer() {
+    JsonObjectConst root = Core::config.doc.as<JsonObjectConst>();
+    if (!devices().loadFromConfig(root)) {
+        Log::E("[App] DeviceRegistry config load failed.");
+        return false;
+    }
+
+    CanBusConfig cfg;
+    const DeviceRegistry::CanSettings& settings = devices().canSettings();
+    cfg.txPin = settings.txPin;
+    cfg.rxPin = settings.rxPin;
+    cfg.bitrate = settings.bitrate;
+
+    if (!can().begin(cfg)) {
+        Log::E("[App] CAN bus was not started. Continue boot with offline devices.");
+        return true;
+    }
+    return true;
+}
+
 void App::process() {
+    can().process();
     Page::process();
     State::process();
     Service::process();

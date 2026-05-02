@@ -34,6 +34,48 @@ void fillSettings(JsonObject settings, bool accessPoint) {
     settings["MCP_TRIGGER_I2C_WAIT_MS"] = 150;
 }
 
+void fillCan(JsonObject can) {
+    can["driver"] = "twai";
+    can["tx_pin"] = 17;
+    can["rx_pin"] = 18;
+    can["bitrate"] = 500000;
+    can["mode"] = "normal";
+    can["heartbeat_period_ms"] = 200;
+    can["heartbeat_timeout_ms"] = 1000;
+    can["task_timeout_ms"] = 5000;
+}
+
+void fillHeadDevices(JsonObject devices, JsonObject roles) {
+    JsonObject paper = devices["paper"].to<JsonObject>();
+    paper["address"] = 33;
+    paper["protocol"] = "mks";
+    paper["required"] = true;
+    JsonObject paperDevice = paper["device"].to<JsonObject>();
+    paperDevice["role"] = "paper";
+    paperDevice["note"] = "MKS configure payload is not finalized yet.";
+
+    JsonObject motion = devices["motion"].to<JsonObject>();
+    motion["address"] = 16;
+    motion["protocol"] = "stm.v1";
+    motion["required"] = true;
+    JsonObject motionDevice = motion["device"].to<JsonObject>();
+    motionDevice["role"] = "motion";
+    motionDevice["note"] = "Temporary payload. Detailed realtime config still lives in root device during migration.";
+
+    JsonObject panel = devices["panel"].to<JsonObject>();
+    panel["address"] = 48;
+    panel["protocol"] = "stm.v1";
+    panel["required"] = false;
+    JsonObject panelDevice = panel["device"].to<JsonObject>();
+    panelDevice["role"] = "panel";
+
+    roles["paper"] = "paper";
+    roles["table"] = "motion";
+    roles["guillotine"] = "motion";
+    roles["motion"] = "motion";
+    roles["panel"] = "panel";
+}
+
 bool fillDevice(JsonObject device, Catalog::MachineType type) {
     MachineSpec spec = MachineSpec::get(type);
     if (spec.type() == Catalog::MachineType::UNKNOWN) {
@@ -96,6 +138,13 @@ bool build(JsonDocument& doc, const Options& options) {
 
     JsonObject settings = root["settings"].to<JsonObject>();
     detail::fillSettings(settings, options.accessPoint);
+
+    JsonObject can = root["can"].to<JsonObject>();
+    detail::fillCan(can);
+
+    JsonObject devices = root["devices"].to<JsonObject>();
+    JsonObject roles = root["roles"].to<JsonObject>();
+    detail::fillHeadDevices(devices, roles);
 
     JsonObject device = root["device"].to<JsonObject>();
     if (!detail::fillDevice(device, options.machine)) {

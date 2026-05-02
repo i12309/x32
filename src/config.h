@@ -17,12 +17,14 @@ struct Options {
     String name = "ESP32";
     bool accessPoint = false;
     bool withTestData = false;
-    int configVersion = 0;
+    int configVersion = 1;
 };
 
 namespace detail {
 
 void fillSettings(JsonObject settings, bool accessPoint);
+void fillCan(JsonObject can);
+void fillHeadDevices(JsonObject devices, JsonObject roles);
 bool fillDevice(JsonObject device, Catalog::MachineType type);
 void fillTuning(JsonObject tuning);
 void fillTestProfiles(JsonArray profiles);
