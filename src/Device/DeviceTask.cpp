@@ -1,6 +1,23 @@
 #include "Device/DeviceTask.h"
 
+#include <cctype>
 #include <cstring>
+
+namespace {
+
+bool equalsIgnoreCase(const char* lhs, const char* rhs) {
+    if (lhs == nullptr || rhs == nullptr) return false;
+    while (*lhs != '\0' && *rhs != '\0') {
+        unsigned char l = static_cast<unsigned char>(*lhs);
+        unsigned char r = static_cast<unsigned char>(*rhs);
+        if (tolower(l) != tolower(r)) return false;
+        ++lhs;
+        ++rhs;
+    }
+    return *lhs == '\0' && *rhs == '\0';
+}
+
+} // namespace
 
 const char* roleName(Role role) {
     switch (role) {
@@ -17,12 +34,12 @@ const char* roleName(Role role) {
 
 Role roleFromName(const char* name) {
     if (name == nullptr) return Role::Unknown;
-    if (strcmp(name, "paper") == 0) return Role::Paper;
-    if (strcmp(name, "table") == 0) return Role::Table;
-    if (strcmp(name, "guillotine") == 0) return Role::Guillotine;
-    if (strcmp(name, "panel") == 0) return Role::Panel;
-    if (strcmp(name, "motion") == 0) return Role::Motion;
-    if (strcmp(name, "check") == 0) return Role::Check;
+    if (equalsIgnoreCase(name, "paper")) return Role::Paper;
+    if (equalsIgnoreCase(name, "table")) return Role::Table;
+    if (equalsIgnoreCase(name, "guillotine")) return Role::Guillotine;
+    if (equalsIgnoreCase(name, "panel")) return Role::Panel;
+    if (equalsIgnoreCase(name, "motion")) return Role::Motion;
+    if (equalsIgnoreCase(name, "check")) return Role::Check;
     return Role::Unknown;
 }
 

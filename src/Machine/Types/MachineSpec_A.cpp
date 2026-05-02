@@ -65,7 +65,7 @@ void MachineSpec::fillDefaultsA(JsonObject device) const {
     {
         JsonObject table = motors["TABLE"].to<JsonObject>();
         table["I2C"] = "MCP0";
-        table["driver"] = "RTM";
+        table["driver"] = "RMT";
         JsonObject tablePin = table["pin"].to<JsonObject>();
         tablePin["step"] = 23;
         tablePin["dir"] = 0;
@@ -154,7 +154,7 @@ void MachineSpec::fillDefaultsA(JsonObject device) const {
 
         JsonObject guillotine = motors["GUILLOTINE"].to<JsonObject>();
         guillotine["I2C"] = "MCP0";
-        guillotine["driver"] = "RTM";
+        guillotine["driver"] = "RMT";
         JsonObject guillotinePin = guillotine["pin"].to<JsonObject>();
         guillotinePin["step"] = 18;
         guillotinePin["dir"] = 4;

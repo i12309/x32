@@ -83,6 +83,19 @@ bool DeviceRegistry::loadFromConfig(JsonObjectConst root) {
         }
 
         JsonObjectConst cfg = pair.value().as<JsonObjectConst>();
+        if (cfg.isNull()) {
+            Log::E("[DeviceRegistry] config.devices.%s must be an object", pair.key().c_str());
+            return false;
+        }
+        if (!cfg["address"].is<uint8_t>() && !cfg["address"].is<int>()) {
+            Log::E("[DeviceRegistry] config.devices.%s.address is missing", pair.key().c_str());
+            return false;
+        }
+        if (!cfg["protocol"].is<const char*>()) {
+            Log::E("[DeviceRegistry] config.devices.%s.protocol is missing", pair.key().c_str());
+            return false;
+        }
+
         DeviceNode& node = devices_[count_++];
         node = DeviceNode();
         node.name = pair.key().c_str();
@@ -108,6 +121,12 @@ bool DeviceRegistry::loadFromConfig(JsonObjectConst root) {
             roles_[roleCount_].role = roleFromName(pair.key().c_str());
             roles_[roleCount_].deviceName = pair.value() | nullptr;
             if (roles_[roleCount_].role != Role::Unknown && roles_[roleCount_].deviceName != nullptr) {
+                if (findByName(roles_[roleCount_].deviceName) == nullptr) {
+                    Log::E("[DeviceRegistry] role '%s' points to unknown device '%s'",
+                           pair.key().c_str(),
+                           roles_[roleCount_].deviceName);
+                    return false;
+                }
                 roleCount_++;
             }
         }

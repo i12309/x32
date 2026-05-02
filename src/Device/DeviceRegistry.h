@@ -26,7 +26,8 @@ public:
 
     static DeviceRegistry& getInstance();
 
-    // Читает секции can/devices/roles из корневого config.
+    // Читает can/devices из корневого config. Секция roles поддерживается как
+    // необязательный override, но по умолчанию роль берется из имени device.
     bool loadFromConfig(JsonObjectConst root);
 
     // Привязывает роутер, через который registry сможет отправлять задания.
@@ -36,7 +37,7 @@ public:
     // если шина еще не поднята, задания получают статус Rejected без падения boot.
     bool configureRequiredDevices();
 
-    // Основной путь для Scene: роль преобразуется в device из config.roles.
+    // Основной путь для Scene: роль преобразуется в device по имени или через optional config.roles.
     DeviceTaskId sendTask(Role role, DeviceCommand cmd, const DeviceParams& params, uint32_t timeoutMs = 0);
 
     // Диагностический и boot-путь: явное имя device из config.devices.

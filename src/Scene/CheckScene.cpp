@@ -8,8 +8,8 @@ SceneTaskId CheckScene::all(uint32_t timeoutMs) {
 
     for (uint8_t i = 0; i < devices_.count() && count < SceneTask::MaxDeviceTasks; ++i) {
         const DeviceNode* node = devices_.deviceAt(i);
-        if (node == nullptr) continue;
-        ids[count++] = sendToDevice(node->name, DeviceCommand::SelfTest, DeviceParams(), timeoutMs);
+        if (node == nullptr || !node->required) continue;
+        ids[count++] = sendToDevice(node->name, DeviceCommand::Check, DeviceParams(), timeoutMs);
     }
     return trackMany(ids, count);
 }

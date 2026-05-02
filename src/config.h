@@ -24,7 +24,7 @@ namespace detail {
 
 void fillSettings(JsonObject settings, bool accessPoint);
 void fillCan(JsonObject can);
-void fillHeadDevices(JsonObject devices, JsonObject roles);
+bool fillHeadDevices(JsonObject devices, Catalog::MachineType type);
 bool fillDevice(JsonObject device, Catalog::MachineType type);
 void fillTuning(JsonObject tuning);
 void fillTestProfiles(JsonArray profiles);
