@@ -13,6 +13,7 @@
 #include "Service/Log.h"
 #include "Service/Service.h"
 #include "Scene/SceneManager.h"
+#include "Screen/Panel/EezPanel.h"
 #include "State/PlanManager.h"
 #include "State/Scene.h"
 #include "State/State.h"
@@ -25,6 +26,7 @@ CanRouter canRouter(canBus, deviceRegistry);
 MksCan mksCan(canBus);
 StmCan stmCan(canBus);
 SceneManager sceneManager(deviceRegistry);
+Screen::EezPanel screenPanel;
 
 App::Context buildAppContext() {
     App::Context ctx;
@@ -56,6 +58,7 @@ App::Context buildAppContext() {
     ctx.motion.sceneManager = &sceneManager;
     ctx.can.devices = &deviceRegistry;
     ctx.can.router = &canRouter;
+    ctx.ui.panel = &screenPanel;
 
     ctx.ui.activePage = &Page::activePage;
     ctx.ui.previousPage = &Page::previousPage;
@@ -160,6 +163,19 @@ CanRouter& App::can() {
     abort();
 }
 
+Screen::Panel& App::panel() {
+    App::Context* ctx = App::tryContext();
+    if (ctx == nullptr) {
+        Log::E("[App] Context is not initialized. Aborting.");
+        abort();
+    }
+    Screen::Panel* panel = ctx->ui.panel;
+    if (panel != nullptr) return *panel;
+
+    Log::E("[App] Screen panel is not initialized. Aborting.");
+    abort();
+}
+
 DeviceError& App::diag() {
     App::Context* ctx = App::tryContext();
     if (ctx == nullptr) {
@@ -211,12 +227,19 @@ void App::init() {
 }
 
 bool App::initCanDeviceLayer() {
+    return initDeviceRegistry() && initCanBus();
+}
+
+bool App::initDeviceRegistry() {
     JsonObjectConst root = Core::config.doc.as<JsonObjectConst>();
     if (!devices().loadFromConfig(root)) {
         Log::E("[App] DeviceRegistry config load failed.");
         return false;
     }
+    return true;
+}
 
+bool App::initCanBus() {
     CanBusConfig cfg;
     const DeviceRegistry::CanSettings& settings = devices().canSettings();
     cfg.txPin = settings.txPin;
@@ -224,14 +247,15 @@ bool App::initCanDeviceLayer() {
     cfg.bitrate = settings.bitrate;
 
     if (!can().begin(cfg)) {
-        Log::E("[App] CAN bus was not started. Continue boot with offline devices.");
-        return true;
+        Log::E("[App] CAN bus was not started.");
+        return false;
     }
     return true;
 }
 
 void App::process() {
     can().process();
+    panel().process();
     Page::process();
     State::process();
     Service::process();

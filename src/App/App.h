@@ -16,6 +16,7 @@ class Page;
 class PlanManager;
 class DeviceRegistry;
 class CanRouter;
+namespace Screen { class Panel; }
 
 class App {
 public:
@@ -69,6 +70,7 @@ public:
         struct UiContext {
             Page** activePage = nullptr;
             Page** previousPage = nullptr;
+            Screen::Panel* panel = nullptr;
         };
 
         ConfigContext config;
@@ -97,12 +99,15 @@ public:
     static SceneManager& sceneManager();
     static DeviceRegistry& devices();
     static CanRouter& can();
+    static Screen::Panel& panel();
     static DeviceError& diag();
     static State*& state();
     static Catalog::Mode& mode();
     static PlanManager& plan();
 
     void init();
+    bool initDeviceRegistry();
+    bool initCanBus();
     bool initCanDeviceLayer();
     void process();
 
