@@ -9,6 +9,7 @@ class Machine;
 class IMachineContext;
 class Registry;
 class Scene;
+class SceneManager;
 class DeviceError;
 class State;
 class Page;
@@ -57,6 +58,7 @@ public:
 
         struct MotionContext {
             Scene* scene = nullptr;
+            SceneManager* sceneManager = nullptr;
         };
 
         struct CanContext {
@@ -92,6 +94,7 @@ public:
     static Machine& machine();
     static Registry& reg();
     static Scene& scene();
+    static SceneManager& sceneManager();
     static DeviceRegistry& devices();
     static CanRouter& can();
     static DeviceError& diag();

@@ -12,6 +12,7 @@
 #include "Service/DeviceError.h"
 #include "Service/Log.h"
 #include "Service/Service.h"
+#include "Scene/SceneManager.h"
 #include "State/PlanManager.h"
 #include "State/Scene.h"
 #include "State/State.h"
@@ -23,6 +24,7 @@ DeviceRegistry& deviceRegistry = DeviceRegistry::getInstance();
 CanRouter canRouter(canBus, deviceRegistry);
 MksCan mksCan(canBus);
 StmCan stmCan(canBus);
+SceneManager sceneManager(deviceRegistry);
 
 App::Context buildAppContext() {
     App::Context ctx;
@@ -51,6 +53,7 @@ App::Context buildAppContext() {
     ctx.plan.manager = &PlanManager::instance();
     ctx.diagnostics.deviceError = &DeviceError::getInstance();
     ctx.motion.scene = &Scene::getInstance();
+    ctx.motion.sceneManager = &sceneManager;
     ctx.can.devices = &deviceRegistry;
     ctx.can.router = &canRouter;
 
@@ -118,6 +121,19 @@ Scene& App::scene() {
     Scene* scene = ctx->motion.scene;
     if (scene != nullptr) return *scene;
     return Scene::getInstance();
+}
+
+SceneManager& App::sceneManager() {
+    App::Context* ctx = App::tryContext();
+    if (ctx == nullptr) {
+        Log::E("[App] Context is not initialized. Aborting.");
+        abort();
+    }
+    SceneManager* manager = ctx->motion.sceneManager;
+    if (manager != nullptr) return *manager;
+
+    Log::E("[App] SceneManager is not initialized. Aborting.");
+    abort();
 }
 
 DeviceRegistry& App::devices() {
