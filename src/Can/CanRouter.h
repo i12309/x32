@@ -25,6 +25,9 @@ public:
     bool sendTask(const DeviceNode& node, const DeviceTask& task);
     bool sendConfigure(const DeviceNode& node, const ConfigureTask& task);
 
+    // Проверяет capability зарегистрированного protocol без отправки кадра.
+    bool supports(const char* protocolName, DeviceCommand command);
+
     // Общий loop: прием кадров, polling протоколов и таймауты registry.
     void process();
 

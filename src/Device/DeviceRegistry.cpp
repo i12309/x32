@@ -5,6 +5,50 @@
 #include "Can/CanRouter.h"
 #include "Service/Log.h"
 
+namespace {
+
+bool isTerminalTaskStatus(DeviceTaskStatus status) {
+    return status == DeviceTaskStatus::Done ||
+           status == DeviceTaskStatus::Failed ||
+           status == DeviceTaskStatus::Timeout ||
+           status == DeviceTaskStatus::Rejected;
+}
+
+struct RoleCommandRequirement {
+    Role role;
+    DeviceCommand command;
+};
+
+constexpr RoleCommandRequirement RequiredRoleCommands[] = {
+    {Role::Paper, DeviceCommand::PaperFeed},
+    {Role::Paper, DeviceCommand::Stop},
+    {Role::Table, DeviceCommand::TableUp},
+    {Role::Table, DeviceCommand::TableDown},
+    {Role::Table, DeviceCommand::Stop},
+    {Role::Guillotine, DeviceCommand::GuillotineCut},
+    {Role::Guillotine, DeviceCommand::Stop},
+    {Role::Motion, DeviceCommand::Check},
+    {Role::Motion, DeviceCommand::Stop},
+    {Role::Panel, DeviceCommand::Check},
+};
+
+const char* protocolHint(DeviceCommand command) {
+    switch (command) {
+        case DeviceCommand::PaperFeedUntilMark:
+        case DeviceCommand::TableUp:
+        case DeviceCommand::TableDown:
+        case DeviceCommand::GuillotineCut:
+        case DeviceCommand::ProfileRun:
+        case DeviceCommand::SelfTest:
+        case DeviceCommand::Configure:
+            return "stm.v1";
+        default:
+            return "compatible protocol";
+    }
+}
+
+} // namespace
+
 DeviceRegistry& DeviceRegistry::getInstance() {
     static DeviceRegistry instance;
     return instance;
@@ -80,6 +124,10 @@ bool DeviceRegistry::configureRequiredDevices() {
     bool ok = true;
     for (uint8_t i = 0; i < count_; ++i) {
         if (!devices_[i].required) continue;
+        if (!validateRequiredCapabilities(devices_[i])) {
+            ok = false;
+            continue;
+        }
         DeviceTaskId id = sendConfigure(devices_[i].name, can_.taskTimeoutMs);
         if (id == 0 || devices_[i].activeTaskStatus == DeviceTaskStatus::Rejected) {
             ok = false;
@@ -97,9 +145,25 @@ DeviceTaskId DeviceRegistry::sendTask(Role role, DeviceCommand cmd, const Device
     return sendTask(node->name, cmd, params, timeoutMs);
 }
 
+DeviceTaskId DeviceRegistry::sendTask(uint8_t address, DeviceCommand cmd, const DeviceParams& params, uint32_t timeoutMs) {
+    DeviceNode* node = findByAddress(address);
+    if (node == nullptr) {
+        Log::E("[DeviceRegistry] No device for address=%u", address);
+        return 0;
+    }
+    return sendTask(node->name, cmd, params, timeoutMs);
+}
+
 DeviceTaskId DeviceRegistry::sendTask(DeviceName name, DeviceCommand cmd, const DeviceParams& params, uint32_t timeoutMs) {
     DeviceNode* node = findByName(name);
     if (node == nullptr) return 0;
+
+    if (node->status.incompatible) {
+        Log::E("[DeviceRegistry] Task rejected device=%s command=%s: incompatible protocol",
+               node->name,
+               commandName(cmd));
+        return queueRejected(node);
+    }
 
     DeviceTask task;
     task.id = nextTaskId();
@@ -219,10 +283,15 @@ void DeviceRegistry::markHeartbeat(uint8_t address, uint8_t protocolMajor, uint8
     }
 
     if (activeTaskId != 0) {
-        node->activeTaskId = activeTaskId;
-        node->activeTaskStatus = node->status.busy ? DeviceTaskStatus::Running : DeviceTaskStatus::Accepted;
-    } else if (node->activeTaskStatus == DeviceTaskStatus::Running || node->activeTaskStatus == DeviceTaskStatus::Accepted) {
+        if (node->activeTaskId == 0 || static_cast<uint16_t>(node->activeTaskId) == static_cast<uint16_t>(activeTaskId)) {
+            if (node->activeTaskId == 0) node->activeTaskId = activeTaskId;
+            node->activeTaskStatus = node->status.busy ? DeviceTaskStatus::Running : DeviceTaskStatus::Accepted;
+        }
+    } else if (node->activeTaskStatus == DeviceTaskStatus::Sent ||
+               node->activeTaskStatus == DeviceTaskStatus::Accepted ||
+               node->activeTaskStatus == DeviceTaskStatus::Running) {
         node->activeTaskStatus = node->status.error ? DeviceTaskStatus::Failed : DeviceTaskStatus::Done;
+        node->activeTaskDeadlineMs = 0;
     }
 
     if (!node->status.incompatible && protocolMinor != node->expectedProtocolMinor) {
@@ -237,6 +306,7 @@ void DeviceRegistry::markTaskStatus(DeviceTaskId taskId, DeviceTaskStatus status
     for (uint8_t i = 0; i < count_; ++i) {
         if (devices_[i].activeTaskId == taskId) {
             devices_[i].activeTaskStatus = status;
+            if (isTerminalTaskStatus(status)) devices_[i].activeTaskDeadlineMs = 0;
             return;
         }
     }
@@ -248,10 +318,13 @@ void DeviceRegistry::process(uint32_t nowMs) {
         if (node.lastHeartbeatMs != 0 && nowMs - node.lastHeartbeatMs > can_.heartbeatTimeoutMs) {
             node.status.online = false;
             node.status.ready = false;
+            node.status.busy = false;
+            node.status.errorText = "heartbeat timeout";
             if (node.activeTaskStatus == DeviceTaskStatus::Sent ||
                 node.activeTaskStatus == DeviceTaskStatus::Accepted ||
                 node.activeTaskStatus == DeviceTaskStatus::Running) {
                 node.activeTaskStatus = DeviceTaskStatus::Timeout;
+                node.activeTaskDeadlineMs = 0;
             }
         }
 
@@ -261,6 +334,7 @@ void DeviceRegistry::process(uint32_t nowMs) {
                 node.activeTaskStatus == DeviceTaskStatus::Accepted ||
                 node.activeTaskStatus == DeviceTaskStatus::Running) {
                 node.activeTaskStatus = DeviceTaskStatus::Timeout;
+                node.activeTaskDeadlineMs = 0;
             }
         }
     }
@@ -274,6 +348,49 @@ const DeviceNode* DeviceRegistry::deviceAt(uint8_t index) const {
 DeviceTaskId DeviceRegistry::nextTaskId() {
     if (nextTaskId_ == 0) nextTaskId_ = 1;
     return nextTaskId_++;
+}
+
+DeviceTaskId DeviceRegistry::queueRejected(DeviceNode* node) {
+    if (node == nullptr) return 0;
+    node->activeTaskId = nextTaskId();
+    node->activeTaskStatus = DeviceTaskStatus::Rejected;
+    node->activeTaskDeadlineMs = 0;
+    return node->activeTaskId;
+}
+
+bool DeviceRegistry::validateRequiredCapabilities(const DeviceNode& node) const {
+    if (router_ == nullptr) {
+        Log::E("[DeviceRegistry] Cannot validate device=%s: CAN router is not bound", node.name);
+        return false;
+    }
+
+    bool ok = true;
+    if (!router_->supports(node.protocol, DeviceCommand::Configure)) {
+        Log::E("[DeviceRegistry] device '%s' (%s) does not support %s, нужен protocol %s",
+               node.name,
+               node.protocol,
+               commandName(DeviceCommand::Configure),
+               protocolHint(DeviceCommand::Configure));
+        ok = false;
+    }
+
+    for (uint8_t r = 0; r < roleCount_; ++r) {
+        if (roles_[r].deviceName == nullptr || strcmp(roles_[r].deviceName, node.name) != 0) continue;
+
+        for (const RoleCommandRequirement& requirement : RequiredRoleCommands) {
+            if (requirement.role != roles_[r].role) continue;
+            if (router_->supports(node.protocol, requirement.command)) continue;
+
+            Log::E("[DeviceRegistry] device '%s' (%s) does not support %s for role %s, нужен protocol %s",
+                   node.name,
+                   node.protocol,
+                   commandName(requirement.command),
+                   roleName(roles_[r].role),
+                   protocolHint(requirement.command));
+            ok = false;
+        }
+    }
+    return ok;
 }
 
 void DeviceRegistry::addDefaultRoleBindings() {

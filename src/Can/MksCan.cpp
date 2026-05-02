@@ -14,6 +14,7 @@ uint32_t mksCanId(uint8_t address) {
 
 bool MksCan::supports(DeviceCommand command) const {
     switch (command) {
+        case DeviceCommand::Configure:
         case DeviceCommand::Check:
         case DeviceCommand::Stop:
         case DeviceCommand::ResetError:
@@ -38,6 +39,7 @@ bool MksCan::sendTask(const DeviceNode& node, const DeviceTask& task) {
         case DeviceCommand::ResetError:
             frame.data[0] = 0x9B;
             break;
+        case DeviceCommand::Configure:
         case DeviceCommand::Check:
             frame.data[0] = 0x30;
             break;
@@ -62,9 +64,13 @@ bool MksCan::sendTask(const DeviceNode& node, const DeviceTask& task) {
 }
 
 bool MksCan::sendConfigure(const DeviceNode& node, const ConfigureTask& task) {
-    (void)node;
     (void)task;
-    return false;
+
+    CanFrame frame;
+    frame.id = mksCanId(node.address);
+    frame.size = 1;
+    frame.data[0] = 0x30;
+    return bus_.send(frame);
 }
 
 bool MksCan::handleFrame(const CanFrame& frame, DeviceRegistry& registry) {

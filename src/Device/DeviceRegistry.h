@@ -42,6 +42,9 @@ public:
     // Диагностический и boot-путь: явное имя device из config.devices.
     DeviceTaskId sendTask(DeviceName name, DeviceCommand cmd, const DeviceParams& params, uint32_t timeoutMs = 0);
 
+    // Низкоуровневый путь для диагностики: явный CAN-адрес device.
+    DeviceTaskId sendTask(uint8_t address, DeviceCommand cmd, const DeviceParams& params, uint32_t timeoutMs = 0);
+
     // Отдельная отправка configure, потому что payload хранится ссылкой на JSON.
     DeviceTaskId sendConfigure(DeviceName name, uint32_t timeoutMs = 0);
 
@@ -75,6 +78,7 @@ private:
 
     DeviceTaskId nextTaskId();
     DeviceTaskId queueRejected(DeviceNode* node);
+    bool validateRequiredCapabilities(const DeviceNode& node) const;
     void addDefaultRoleBindings();
     DeviceName resolveRole(Role role) const;
     uint32_t timeoutOrDefault(uint32_t timeoutMs) const;

@@ -11,6 +11,7 @@ CanRouter::CanRouter(ICanBus& bus, DeviceRegistry& registry)
 
 bool CanRouter::bindProtocol(CanProtocol* protocol) {
     if (protocol == nullptr || protocolCount_ >= MaxProtocols) return false;
+    if (protocolFor(protocol->name()) != nullptr) return true;
     protocols_[protocolCount_++] = protocol;
     Log::D("[CAN] protocol bound: %s", protocol->name());
     return true;
@@ -38,6 +39,11 @@ bool CanRouter::sendConfigure(const DeviceNode& node, const ConfigureTask& task)
     bool ok = protocol->sendConfigure(node, task);
     registry_.markTaskStatus(task.id, ok ? DeviceTaskStatus::Sent : DeviceTaskStatus::Rejected);
     return ok;
+}
+
+bool CanRouter::supports(const char* protocolName, DeviceCommand command) {
+    CanProtocol* protocol = protocolFor(protocolName);
+    return protocol != nullptr && protocol->supports(command);
 }
 
 void CanRouter::process() {
