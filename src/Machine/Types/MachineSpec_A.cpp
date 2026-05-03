@@ -65,13 +65,14 @@ void MachineSpec::fillDefaultsA(JsonObject device) const {
     {
         JsonObject table = motors["TABLE"].to<JsonObject>();
         table["I2C"] = "MCP0";
-        table["driver"] = "RMT";
+        table["driver"] = "RTM";
         JsonObject tablePin = table["pin"].to<JsonObject>();
         tablePin["step"] = 23;
         tablePin["dir"] = 0;
         tablePin["ena"] = 1;
         table["DelayToEnable"] = 2000;
         table["DelayToDisable"] = 6000;
+        table["LinearAcceleration"] = 0;
         table["MicroStep"] = 3200;
         table["WorkMove"] = 9500;
         JsonArray tableSpeed = table["Speed"].to<JsonArray>();
@@ -108,6 +109,7 @@ void MachineSpec::fillDefaultsA(JsonObject device) const {
         paperSignal["ena_active"] = 0;
         paper["DelayToEnable"] = 2000; // 20 000 только для MKS
         paper["DelayToDisable"] = 6000;
+        paper["LinearAcceleration"] = 100;
         paper["MicroStep"] = 3200;
         paper["WorkMove"] = 3200;
         paper["useEncoderCorrection"] = 1;
@@ -154,13 +156,14 @@ void MachineSpec::fillDefaultsA(JsonObject device) const {
 
         JsonObject guillotine = motors["GUILLOTINE"].to<JsonObject>();
         guillotine["I2C"] = "MCP0";
-        guillotine["driver"] = "RMT";
+        guillotine["driver"] = "RTM";
         JsonObject guillotinePin = guillotine["pin"].to<JsonObject>();
         guillotinePin["step"] = 18;
         guillotinePin["dir"] = 4;
         guillotinePin["ena"] = 5;
         guillotine["DelayToEnable"] = 2000;
         guillotine["DelayToDisable"] = 6000;
+        guillotine["LinearAcceleration"] = 0;
         guillotine["MicroStep"] = 3200;
         guillotine["WorkMove"] = 3200;
         JsonArray guillotineSpeed = guillotine["Speed"].to<JsonArray>();

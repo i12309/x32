@@ -1,6 +1,5 @@
 #pragma once
-#include "State/State.h"
-#include "Scene/SceneManager.h"
+#include "State/Scene.h"
 
 class GuillotineForward : public State {
 public:
@@ -8,31 +7,12 @@ public:
 
     void oneRun() override {        
         State::oneRun();
-        taskId = App::sceneManager().guillotine().cut();
+        App::scene().guillotineWork(Catalog::DIR::Forward,350, Catalog::SPEED::Normal);
     }
 
     State* run() override {
-        switch (App::sceneManager().status(taskId)) {
-            case SceneTaskStatus::Queued:
-            case SceneTaskStatus::Running:
-                return this;
-
-            case SceneTaskStatus::Done:
-                return Factory(State::Type::DONE);
-
-            case SceneTaskStatus::Timeout:
-                return Factory(App::diag().addFatal(State::ErrorCode::GUILLOTINE_NOT_IN, "CAN guillotine task timeout"));
-
-            case SceneTaskStatus::Rejected:
-                return Factory(App::diag().addFatal(State::ErrorCode::GUILLOTINE, "CAN guillotine task rejected"));
-
-            case SceneTaskStatus::Failed:
-            case SceneTaskStatus::Unknown:
-            default:
-                return Factory(App::diag().addFatal(State::ErrorCode::GUILLOTINE, "CAN guillotine task failed"));
-        }
+        // Ждем когда мотор прекратит вращаться
+        if (App::scene().isGuillotineRunning()) return this;
+        return Factory(State::Type::DONE);
     }
-
-private:
-    SceneTaskId taskId = 0;
 };

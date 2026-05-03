@@ -294,8 +294,8 @@ public:
                                                       enableLowActive,
                                                       driverType);
                     registerMotor(name, newMotor);
-                    newMotor->loadParams(motorConfig);
                     newMotor->setMotorName(name.c_str());
+                    newMotor->loadParams(motorConfig);
                     Log::D("Мотор '%s' создан и зарегистрирован.", name.c_str());
                 } else {
                     if (error_message) *error_message = "Ошибка: Неполные пины для мотора '" + name + "'.";

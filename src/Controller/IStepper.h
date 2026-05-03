@@ -8,6 +8,7 @@
 #include "I2CBus.h"
 #include "IStepperParam.h"
 #include "MCP.h"
+#include "StepperPulseTrace.h"// STEPPER_PULSE_TRACE_TEMP
 #include "Data.h"
 #include "Service/Log.h"
 #include "Service/Stats.h"
@@ -26,6 +27,7 @@ class IStepper {
     uint16_t _delayToDisableMs = 6000;
 
     IStepperParam _param;
+    StepperPulseTrace _pulseTrace;// STEPPER_PULSE_TRACE_TEMP
 
     std::string motorName;
     bool _continuousRun = false;
@@ -125,7 +127,11 @@ public:
     void move(int32_t steps, bool blocking = false) {
         if (!ready()) return;
         finishContinuousRun(false);
+        _pulseTrace.beginAuto(stepper, motorName.c_str()); // STEPPER_PULSE_TRACE_TEMP
+        stepper->setLinearAcceleration(_param.getValue("LinearAcceleration", 0));
         stepper->move(steps, blocking);
+        _pulseTrace.sample(); // STEPPER_PULSE_TRACE_TEMP
+        _pulseTrace.finishAutoIfBlocking(blocking); // STEPPER_PULSE_TRACE_TEMP
         if (steps != 0) Stats::getInstance().onMotorSteps(motorName.c_str(), steps);
     }
 
@@ -277,6 +283,8 @@ public:
             stepper->setDelayToEnable(_delayToEnableUs);
             stepper->setDelayToDisable(_delayToDisableMs);
         }
+
+        _pulseTrace.configureAndSetup(stepper, motorName.c_str(), configObj); // STEPPER_PULSE_TRACE_TEMP
     }
 
     uint32_t getMicroStep() { return static_cast<uint32_t>(_param.getValue("MicroStep", 0)); }
@@ -290,22 +298,17 @@ public:
 
     void setSpeed(const std::string& mode) {
         if (!ready()) return;
-
-        const int32_t speed = _param.getValue(mode, "Speed", 0);
-        const int32_t acceleration = _param.getValue(mode, "Acceleration", 0);
-
-        //Log::D("Speed: %d, Accel: %d", speed, acceleration);
-
-        int32_t targetSpeed = speed;
-        int32_t targetAcceleration = acceleration;
-        if (targetSpeed < 0) targetSpeed = 0;
-        if (targetAcceleration < 0) targetAcceleration = 0;
-
-        stepper->setSpeedInHz(targetSpeed);
-        stepper->setAcceleration(targetAcceleration);
+        stepper->setSpeedInHz(_param.getValue(mode, "Speed", 0));
+        stepper->setAcceleration(_param.getValue(mode, "Acceleration", 0));
     }
 
     int32_t getCheck(const std::string& mode, int32_t defaultValue = 0) const { return _param.getCheck(mode, defaultValue); }
     int32_t getCheckMs(const std::string& mode, int32_t defaultValue = -1) const { return _param.getCheckMs(mode, defaultValue); }
+
+    void processPaperPulseTrace() { // STEPPER_PULSE_TRACE_TEMP
+        if (motorName != "PAPER") return;// STEPPER_PULSE_TRACE_TEMP
+        _pulseTrace.process(isRunning()); // STEPPER_PULSE_TRACE_TEMP
+    }// STEPPER_PULSE_TRACE_TEMP
+    // STEPPER_PULSE_TRACE_TEMP_END
 
 };

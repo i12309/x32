@@ -1,11 +1,8 @@
 ﻿#include "Machine/MachineSpec.h"
-#if !defined(X32_TARGET_HEAD_UNIT)
 #include "Controller/Registry.h"
-#endif
 
 namespace {
 
-#if !defined(X32_TARGET_HEAD_UNIT)
 using RegistryExistsFn = bool (*)(const Registry&, const String&);
 
 bool existsI2C(const Registry& registry, const String& name) {
@@ -56,10 +53,14 @@ void validateSectionRegistry(
         if (exists) continue;
 
         String msg = String("[MachineSpec] Не создан объект ") + sectionName + "." + req.name;
-        report.warnings.push_back(msg);
+        if (req.criticalForMotion) {
+            report.errors.push_back(msg);
+            report.allowMotion = false;
+        } else {
+            report.warnings.push_back(msg);
+        }
     }
 }
-#endif
 
 } // namespace
 
@@ -109,7 +110,8 @@ MachineSpec::Report MachineSpec::validateDeviceConfig(JsonObjectConst device) co
     Report report;
 
     if (type_ == Catalog::MachineType::UNKNOWN) {
-        report.warnings.push_back("[MachineSpec] Неизвестный MachineType, спецификация не выбрана.");
+        report.errors.push_back("[MachineSpec] Неизвестный MachineType, спецификация не выбрана.");
+        report.allowMotion = false;
         return report;
     }
 
@@ -122,19 +124,21 @@ MachineSpec::Report MachineSpec::validateDeviceConfig(JsonObjectConst device) co
     validateSectionConfig("buttons", device["buttons"], buttons_, report);
     validateSectionConfig("encoders", device["encoders"], encoders_, report);
 
+    if (report.hasErrors()) {
+        // Если конфиг не соответствует обязательному минимуму,
+        // движение разрешать рискованно.
+        report.allowMotion = false;
+    }
+
     return report;
 }
 
 MachineSpec::Report MachineSpec::validateRegistry(const Registry& registry) const {
     Report report;
 
-#if defined(X32_TARGET_HEAD_UNIT)
-    (void)registry;
-    report.warnings.push_back("[MachineSpec] Registry локальных моторов отключен в head-unit сборке.");
-    return report;
-#else
     if (type_ == Catalog::MachineType::UNKNOWN) {
-        report.warnings.push_back("[MachineSpec] Неизвестный MachineType, проверка загруженных объектов невозможна.");
+        report.errors.push_back("[MachineSpec] Неизвестный MachineType, проверка загруженных объектов невозможна.");
+        report.allowMotion = false;
         return report;
     }
 
@@ -148,7 +152,6 @@ MachineSpec::Report MachineSpec::validateRegistry(const Registry& registry) cons
     validateSectionRegistry("encoders", registry, existsEncoder, encoders_, report);
 
     return report;
-#endif
 }
 
 void MachineSpec::validateSectionConfig(
@@ -160,14 +163,19 @@ void MachineSpec::validateSectionConfig(
     if (required.empty()) return;
 
     if (sectionObj.isNull()) {
-        report.warnings.push_back(String("[MachineSpec] В config отсутствует секция device.") + sectionName);
+        report.errors.push_back(String("[MachineSpec] В config отсутствует секция device.") + sectionName);
         return;
     }
 
     for (const Requirement& req : required) {
         if (sectionObj[req.name].isNull()) {
             String msg = String("[MachineSpec] Отсутствует device.") + sectionName + "." + req.name;
-            report.warnings.push_back(msg);
+            if (req.criticalForMotion) {
+                report.errors.push_back(msg);
+                report.allowMotion = false;
+            } else {
+                report.warnings.push_back(msg);
+            }
         }
     }
 }

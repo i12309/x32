@@ -6,19 +6,13 @@
 #include "Catalog.h"
 
 class Machine;
-#if !defined(X32_TARGET_HEAD_UNIT)
 class IMachineContext;
 class Registry;
-#endif
 class Scene;
-class SceneManager;
 class DeviceError;
 class State;
 class Page;
 class PlanManager;
-class DeviceRegistry;
-class CanRouter;
-namespace Screen { class Panel; }
 
 class App {
 public:
@@ -42,10 +36,8 @@ public:
 
         struct MachineContext {
             Machine* machine = nullptr;
-#if !defined(X32_TARGET_HEAD_UNIT)
             IMachineContext* devices = nullptr;
             Registry* registry = nullptr;
-#endif
         };
 
         struct RuntimeContext {
@@ -63,18 +55,11 @@ public:
 
         struct MotionContext {
             Scene* scene = nullptr;
-            SceneManager* sceneManager = nullptr;
-        };
-
-        struct CanContext {
-            DeviceRegistry* devices = nullptr;
-            CanRouter* router = nullptr;
         };
 
         struct UiContext {
             Page** activePage = nullptr;
             Page** previousPage = nullptr;
-            Screen::Panel* panel = nullptr;
         };
 
         ConfigContext config;
@@ -84,7 +69,6 @@ public:
         PlanContext plan;
         DiagnosticsContext diagnostics;
         MotionContext motion;
-        CanContext can;
         UiContext ui;
     };
 
@@ -95,28 +79,17 @@ public:
     static Context* tryContext() {
         return instance_ ? &instance_->context_ : nullptr;
     }
-#if !defined(X32_TARGET_HEAD_UNIT)
     static IMachineContext& ctx();
-#endif
     static Context::ConfigContext& cfg();
     static Machine& machine();
-#if !defined(X32_TARGET_HEAD_UNIT)
     static Registry& reg();
     static Scene& scene();
-#endif
-    static SceneManager& sceneManager();
-    static DeviceRegistry& devices();
-    static CanRouter& can();
-    static Screen::Panel& panel();
     static DeviceError& diag();
     static State*& state();
     static Catalog::Mode& mode();
     static PlanManager& plan();
 
     void init();
-    bool initDeviceRegistry();
-    bool initCanBus();
-    bool initCanDeviceLayer();
     void process();
 
     Context& context() { return context_; }

@@ -28,123 +28,10 @@ void fillSettings(JsonObject settings, bool accessPoint) {
     settings["licence_off"] = 1;
     settings["MAX_PROFILES"] = 50;
     settings["MAX_TASKS"] = 50;
-    settings["log"] = 0;
+    settings["log"] = 1;
     settings["metrics"] = 1;
     // Отдельный таймаут для McpTrigger: позволяет переживать короткую занятость I2C без ложного отказа arm/read snapshot.
     settings["MCP_TRIGGER_I2C_WAIT_MS"] = 150;
-}
-
-void fillCan(JsonObject can) {
-    can["driver"] = "twai";
-    can["tx_pin"] = 17;
-    can["rx_pin"] = 18;
-    can["bitrate"] = 500000;
-    can["mode"] = "normal";
-    can["heartbeat_period_ms"] = 200;
-    can["heartbeat_timeout_ms"] = 1000;
-    can["task_timeout_ms"] = 5000;
-}
-
-bool ensureSupportedMachine(Catalog::MachineType type) {
-    MachineSpec spec = MachineSpec::get(type);
-    if (spec.type() == Catalog::MachineType::UNKNOWN) {
-        Log::E("[ConfigDefaults] MachineSpec is not implemented for type '%s'", Catalog::machineName(type).c_str());
-        return false;
-    }
-    return true;
-}
-
-void fillTableDevice(JsonObject device) {
-    JsonObject table = device["TABLE"].to<JsonObject>();
-    table["driver"] = "RMT";
-    JsonObject pin = table["pin"].to<JsonObject>();
-    pin["step"] = 23;
-    pin["dir"] = 0;
-    pin["ena"] = 1;
-    table["DelayToEnable"] = 2000;
-    table["DelayToDisable"] = 6000;
-    table["MicroStep"] = 3200;
-    JsonArray speed = table["Speed"].to<JsonArray>();
-    JsonObject normal = speed.add<JsonObject>();
-    normal["Mode"] = "Normal";
-    normal["Speed"] = 16000;
-    normal["Acceleration"] = 32000;
-    JsonObject slow = speed.add<JsonObject>();
-    slow["Mode"] = "Slow";
-    slow["Speed"] = 9600;
-    slow["Acceleration"] = 9600;
-    table["WorkMove"] = 9500;
-    JsonArray check = table["Check"].to<JsonArray>();
-    JsonObject notDown = check.add<JsonObject>();
-    notDown["Mode"] = "TABLE_NOT_DOWN";
-    notDown["step"] = 19000;
-    notDown["ms"] = -1;
-    JsonObject notUp = check.add<JsonObject>();
-    notUp["Mode"] = "TABLE_NOT_UP";
-    notUp["step"] = 19000;
-    notUp["ms"] = -1;
-
-    JsonObject sensors = device["sensors"].to<JsonObject>();
-    JsonObject tableUp = sensors["TABLE_UP"].to<JsonObject>();
-    tableUp["pin"] = 0;
-    JsonObject tableDown = sensors["TABLE_DOWN"].to<JsonObject>();
-    tableDown["pin"] = 1;
-}
-
-void fillGuillotineDevice(JsonObject device) {
-    JsonObject guillotine = device["GUILLOTINE"].to<JsonObject>();
-    guillotine["driver"] = "RMT";
-    JsonObject pin = guillotine["pin"].to<JsonObject>();
-    pin["step"] = 18;
-    pin["dir"] = 4;
-    pin["ena"] = 5;
-    guillotine["DelayToEnable"] = 2000;
-    guillotine["DelayToDisable"] = 6000;
-    guillotine["MicroStep"] = 3200;
-    JsonArray speed = guillotine["Speed"].to<JsonArray>();
-    JsonObject normal = speed.add<JsonObject>();
-    normal["Mode"] = "Normal";
-    normal["Speed"] = 16000;
-    normal["Acceleration"] = 32000;
-    JsonObject slow = speed.add<JsonObject>();
-    slow["Mode"] = "Slow";
-    slow["Speed"] = 9600;
-    slow["Acceleration"] = 9600;
-    guillotine["WorkMove"] = 3200;
-    JsonArray check = guillotine["Check"].to<JsonArray>();
-    JsonObject notIn = check.add<JsonObject>();
-    notIn["Mode"] = "GUILLOTINE_NOT_IN";
-    notIn["step"] = 4000;
-    notIn["ms"] = 1500;
-
-    JsonObject sensors = device["sensors"].to<JsonObject>();
-    JsonObject guillotineSensor = sensors["GUILLOTINE"].to<JsonObject>();
-    guillotineSensor["pin"] = 2;
-}
-
-bool fillHeadDevices(JsonObject devices, Catalog::MachineType type) {
-    if (!ensureSupportedMachine(type)) {
-        return false;
-    }
-
-    JsonObject paper = devices["paper"].to<JsonObject>();
-    paper["address"] = 33;
-    paper["protocol"] = "mks";
-    paper["required"] = true;
-
-    JsonObject table = devices["table"].to<JsonObject>();
-    table["address"] = 16;
-    table["protocol"] = "stm.v1";
-    table["required"] = true;
-    fillTableDevice(table["device"].to<JsonObject>());
-
-    JsonObject guillotine = devices["GUILLOTINE"].to<JsonObject>();
-    guillotine["address"] = 17;
-    guillotine["protocol"] = "stm.v1";
-    guillotine["required"] = true;
-    fillGuillotineDevice(guillotine["device"].to<JsonObject>());
-
-    return true;
 }
 
 bool fillDevice(JsonObject device, Catalog::MachineType type) {
@@ -159,11 +46,15 @@ bool fillDevice(JsonObject device, Catalog::MachineType type) {
 }
 
 void fillTuning(JsonObject tuning) {
-    tuning["EDGE_DISTANCE_mm"] = 34.2;
-    tuning["SENSOR_DISTANCE_mm"] = 34.2;
+    tuning["EDGE_DISTANCE_mm"] = 17;
+    tuning["SENSOR_DISTANCE_mm"] = 17;
     tuning["DELTA_mm"] = 0;
     tuning["MARK_LENGHT_mm"] = 3;
-    tuning["OVER_mm"] = 1.5;
+    tuning["MARK_CENTER_DISTANCE_mm"] = 9.5;
+    tuning["OFFSET_FIRSTCUT_MM"] = 8.0;
+    tuning["OFFSET_TOL_MM"] = 0.15;
+    tuning["OFFSET_MAX_ITER"] = 2;
+    tuning["OVER_mm"] = 2;
     tuning["DISTANCE_BETWEEN_MARKS_mm"] = 40;
     tuning["CUT_count"] = 12;
     tuning["PROFILE_WIDTH_step"] = 2000;
@@ -206,11 +97,8 @@ bool build(JsonDocument& doc, const Options& options) {
     JsonObject settings = root["settings"].to<JsonObject>();
     detail::fillSettings(settings, options.accessPoint);
 
-    JsonObject can = root["can"].to<JsonObject>();
-    detail::fillCan(can);
-
-    JsonObject devices = root["devices"].to<JsonObject>();
-    if (!detail::fillHeadDevices(devices, options.machine)) {
+    JsonObject device = root["device"].to<JsonObject>();
+    if (!detail::fillDevice(device, options.machine)) {
         return false;
     }
 

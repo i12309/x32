@@ -9,8 +9,8 @@
 class Registry;
 
 // Каркас спецификации станка.
-// На этапе архитектурной миграции спецификация работает как диагностический слой:
-// фиксирует расхождения, но не блокирует boot и перенос state machine на CAN-сцены.
+// Задача класса: хранить эталонный состав device для конкретного MachineType,
+// уметь валидировать конфиг и проверять факт создания объектов после загрузки.
 class MachineSpec {
 public:
     // Описание одного обязательного элемента в секции device.
@@ -24,7 +24,7 @@ public:
     struct Report {
         std::vector<String> errors;
         std::vector<String> warnings;
-        bool allowMotion = true;
+        bool allowMotion = true; // В false переводим, если отсутствует критичный для движения узел.
 
         bool hasErrors() const { return !errors.empty(); }
         bool hasWarnings() const { return !warnings.empty(); }

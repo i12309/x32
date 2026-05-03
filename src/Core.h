@@ -345,38 +345,20 @@ private:
                 Log::D("Ошибка загрузки секции settings");
                 return false;
             }
+            Catalog::MachineType machineType = Catalog::getMachine(machine);
+            MachineSpec spec = MachineSpec::get(machineType);
+            JsonObjectConst deviceObj = doc["device"];
+            MachineSpec::Report report = spec.validateDeviceConfig(deviceObj);
 
-            JsonObjectConst devicesObj = doc["devices"];
-            const bool headConfig = configVersion >= 1 && !devicesObj.isNull();
-            if (headConfig) {
-                bool hasRequiredDevice = false;
-                for (JsonPairConst pair : devicesObj) {
-                    JsonObjectConst deviceCfg = pair.value().as<JsonObjectConst>();
-                    if (deviceCfg["required"] | false) {
-                        hasRequiredDevice = true;
-                        break;
-                    }
+            for (const String& warning : report.warnings) {
+                Log::D("%s", warning.c_str());
+            }
+            if (report.hasErrors()) {
+                for (const String& err : report.errors) {
+                    Log::E("%s", err.c_str());
                 }
-                if (!hasRequiredDevice) {
-                    Log::E("[Config] config.devices must contain at least one required device.");
-                    return false;
-                }
-            } else {
-                Catalog::MachineType machineType = Catalog::getMachine(machine);
-                MachineSpec spec = MachineSpec::get(machineType);
-                JsonObjectConst deviceObj = doc["device"];
-                MachineSpec::Report report = spec.validateDeviceConfig(deviceObj);
-
-                for (const String& warning : report.warnings) {
-                    Log::D("%s", warning.c_str());
-                }
-                if (report.hasErrors()) {
-                    for (const String& err : report.errors) {
-                        Log::E("%s", err.c_str());
-                    }
-                    Log::E("[Config] MachineSpec validation failed for machine='%s'", machine.c_str());
-                    return false;
-                }
+                Log::E("[Config] MachineSpec validation failed for machine='%s'", machine.c_str());
+                return false;
             }
 
             return true;
