@@ -1,0 +1,16 @@
+{
+  "name": "eez_ui",
+  "version": "0.1.0",
+  "description": "EEZ Studio generated LVGL UI for the SMIT display.",
+  "frameworks": "arduino",
+  "platforms": "espressif32",
+  "build": {
+    "srcDir": "src",
+    "includeDir": "src"
+  },
+  "dependencies": [
+    {
+      "name": "lvgl"
+    }
+  ]
+}
