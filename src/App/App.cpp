@@ -7,6 +7,7 @@
 #include "Service/DeviceError.h"
 #include "Service/Log.h"
 #include "Service/Service.h"
+#include "Screen/Panel/Panel.h"
 #include "State/PlanManager.h"
 #include "State/Scene.h"
 #include "State/State.h"
@@ -151,12 +152,13 @@ PlanManager& App::plan() {
 
 void App::init() {
     Log::init();
+    Panel::init();
     State::init();
     Trigger::init();
 }
 
 void App::process() {
-    Page::process();
+    Panel::process();
     State::process();
     if (App::ctx().mPaper != nullptr) App::ctx().mPaper->processPaperPulseTrace(); // STEPPER_PULSE_TRACE_TEMP
     Service::process();

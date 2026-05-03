@@ -48,35 +48,11 @@ private:
     }
 
     static void setStatus(const String& text) {
-        if (!context().displayReady) {
-            // экран не работает - выводим в терминал
-            Log::D("BOOT: %s", text.c_str());
-            return;
-        }
-
-        BootContext& ctx = context();
-        ctx.label_num++;
-        pLoad& load = pLoad::getInstance();
-        load.text(text);
-        if (ctx.label_num-1 > 0) {
-            uint32_t prevColor = load.getProgressColor(ctx.label_num-1);
-            if (prevColor != Catalog::Color::red) {
-                load.setProgressColor(ctx.label_num-1, Catalog::Color::green);
-            }
-        }
-        load.setProgressColor(ctx.label_num, Catalog::Color::orange);
+        Log::D("BOOT: %s", text.c_str());
     }
 
     static void setStatusFail(const String& text) {
-        if (!context().displayReady) {
-            Log::E("BOOT: %s", text.c_str());
-            return;
-        }
-
-        BootContext& ctx = context();
-        pLoad& load = pLoad::getInstance();
-        load.text(text);
-        load.setProgressColor(ctx.label_num, Catalog::Color::red);
+        Log::E("BOOT: %s", text.c_str());
     }
 public:
     Boot() : State(State::Type::BOOT) {}
@@ -89,16 +65,17 @@ public:
         plan.beginPlan(this->type());
 
         plan.addAction(State::Type::ACTION, &Boot::LogStart, "LogStart");
-        plan.addAction(State::Type::ACTION, &Boot::InitNextion, "InitNextion");
-        plan.addAction(State::Type::ACTION, &Boot::ShowLoad, "ShowLoad");
+        plan.addAction(State::Type::ACTION, &Boot::InitDisplay, "InitDisplay");
+        plan.addAction(State::Type::ACTION, &Boot::ShowLoadScreen, "ShowLoadScreen");
         plan.addAction(State::Type::ACTION, &Boot::InitFileSystem, "InitFileSystem");
         plan.addAction(State::Type::ACTION, &Boot::InitNVS, "InitNVS");
         plan.addAction(State::Type::ACTION, &Boot::LoadConfig, "LoadConfig");
         plan.addAction(State::Type::ACTION, &Boot::ConnectWiFi, "ConnectWiFi");
-        plan.addAction(State::Type::ACTION, &Boot::TryRecoverNextionIfMissing, "TryRecoverNextionIfMissing");
         plan.addAction(State::Type::ACTION, &Boot::UpdateESP, "UpdateESP");
-        plan.addAction(State::Type::ACTION, &Boot::SetTFTVersion, "SetTFTVersion");
-        plan.addAction(State::Type::ACTION, &Boot::UpdateTFT, "UpdateTFT");
+        // Старые шаги Nextion пока не запускаем в LVGL boot path.
+        // plan.addAction(State::Type::ACTION, &Boot::TryRecoverNextionIfMissing, "TryRecoverNextionIfMissing");
+        // plan.addAction(State::Type::ACTION, &Boot::SetTFTVersion, "SetTFTVersion");
+        // plan.addAction(State::Type::ACTION, &Boot::UpdateTFT, "UpdateTFT");
         plan.addAction(State::Type::ACTION, &Boot::StartHttp, "StartHTTP");
         plan.addAction(State::Type::ACTION, &Boot::ConnectMQTT, "ConnectMQTT");
         plan.addAction(State::Type::ACTION, &Boot::LoadData, "LoadData");
@@ -146,30 +123,14 @@ private:
         return true;
     }
 
-    static bool InitNextion() {
+    static bool InitDisplay() {
         BootContext& boot = context();
-        boot.displayReady = false;
-
-        // три раза пытаемся запустить монитор
-        for (int attempt = 1; attempt <= 3; ++attempt) {
-            if (Page::nextionInit()) { // Инициализация экрана
-                boot.displayReady = true;
-                return true;
-            }
-
-            Log::D("Nextion init failed, attempt %d/3", attempt);
-            if (attempt < 3) delay(300);
-        }
-
-        Log::E(" === ERROR Nextion Init ");
+        boot.displayReady = true;
         return true;
     }
 
-    static bool ShowLoad() {
-        if (!context().displayReady) return true; // экрана нет - пропускаем
-        pLoad::getInstance().show();
-        setStatus("Загрузка интерфейса");
-        pLoad::getInstance().checkVersion();
+    static bool ShowLoadScreen() {
+        setStatus("LVGL UI");
         return true;
     }
 
@@ -204,7 +165,8 @@ private:
             }
             nvs.setInt("boot_count", 0, "boot");
             nvs.setInt("ota_pending", 0, "boot");
-            pINFO::showInfo("", "Что-то пошло не так!", "Проверьте параметры", [](){pINIT::getInstance().show();});
+            // TODO(LVGL): вывести ошибку boot на новом экране диагностики.
+            // pINFO::showInfo("", "Что-то пошло не так!", "Проверьте параметры", [](){pINIT::getInstance().show();});
             requestAbort(State::Type::NULL_STATE);
             return true;
         }
@@ -220,7 +182,8 @@ private:
             if (!App::machine().selectByName(selectedMachine, &machineError)) {
                 setStatusFail(machineError);
                 Log::E(" === ERROR Machine Select: %s", machineError.c_str());
-                pINIT::getInstance().show();
+                // TODO(LVGL): открыть экран первичной настройки.
+                // pINIT::getInstance().show();
                 requestAbort(State::Type::NULL_STATE);
                 return true;
             }
@@ -230,7 +193,8 @@ private:
         setStatusFail("Ошибка загруки config"); //TODO надо сделать что бы при этой ошибке http был доступен и можно было исправить config
         Log::E(" === ERROR Core::config.load");
         Core::config.print_config();  // отладка - выведем что в config при ошибке
-        pINIT::getInstance().show();
+        // TODO(LVGL): открыть экран первичной настройки.
+        // pINIT::getInstance().show();
         requestAbort(State::Type::NULL_STATE);
         return true;
     }
@@ -281,9 +245,13 @@ private:
             int level = ESPUpdate::getInstance().checkForUpdate();
             if (level > 0) {
                 ESPUpdate::getInstance().FirmwareUpdate(level, [](int percent) {
-                    String text = "Обновление: " + String(percent) + "%";
-                    pLoad::getInstance().text(text);
+                    Log::D("OTA update: %d%%", percent);
                 });
+                // TODO(LVGL): показывать процент OTA на новом экране загрузки.
+                // ESPUpdate::getInstance().FirmwareUpdate(level, [](int percent) {
+                //     String text = "Обновление: " + String(percent) + "%";
+                //     pLoad::getInstance().text(text);
+                // });
             }
         }
         return true;
