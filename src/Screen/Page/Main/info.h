@@ -11,8 +11,6 @@ public:
     using Page::Page;
     static info& getInstance();
 
-    PageId id() const override { return PageId::Info; }
-
     static void showInfo(const String& text1 = "",
                          const String& text2 = "",
                          const String& text3 = "",

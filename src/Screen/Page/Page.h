@@ -9,7 +9,6 @@ public:
     explicit Page(Panel& panel) : panel_(panel) {}
     virtual ~Page() = default;
 
-    virtual PageId id() const = 0;
     virtual void show() { panel_.show(*this); }
     virtual void hide() {}
     virtual void back() { panel_.back(); }

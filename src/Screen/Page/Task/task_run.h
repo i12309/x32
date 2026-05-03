@@ -9,7 +9,6 @@ public:
     using Page::Page;
     static task_run& getInstance();
 
-    PageId id() const override { return PageId::TaskRun; }
 };
 
 namespace Task {

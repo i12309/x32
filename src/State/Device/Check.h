@@ -1,7 +1,9 @@
 #pragma once
 #include "State/State.h"
 #include "Scene/SceneManager.h"
+#if !defined(X32_TARGET_HEAD_UNIT)
 #include "Service/ESPUpdate.h"
+#endif
 
 class A_CHECK : public State {
 public:
@@ -58,7 +60,9 @@ private:
         if (returnType == State::Type::NULL_STATE) returnType = State::Type::IDLE;
         if (App::diag().hasAny()) returnType = State::Type::ERROR;
 
+#if !defined(X32_TARGET_HEAD_UNIT)
         ESPUpdate::getInstance().markCurrentFirmwareValid();
+#endif
         return Factory(returnType);
     }
 

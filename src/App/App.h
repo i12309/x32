@@ -6,8 +6,10 @@
 #include "Catalog.h"
 
 class Machine;
+#if !defined(X32_TARGET_HEAD_UNIT)
 class IMachineContext;
 class Registry;
+#endif
 class Scene;
 class SceneManager;
 class DeviceError;
@@ -40,8 +42,10 @@ public:
 
         struct MachineContext {
             Machine* machine = nullptr;
+#if !defined(X32_TARGET_HEAD_UNIT)
             IMachineContext* devices = nullptr;
             Registry* registry = nullptr;
+#endif
         };
 
         struct RuntimeContext {
@@ -91,11 +95,15 @@ public:
     static Context* tryContext() {
         return instance_ ? &instance_->context_ : nullptr;
     }
+#if !defined(X32_TARGET_HEAD_UNIT)
     static IMachineContext& ctx();
+#endif
     static Context::ConfigContext& cfg();
     static Machine& machine();
+#if !defined(X32_TARGET_HEAD_UNIT)
     static Registry& reg();
     static Scene& scene();
+#endif
     static SceneManager& sceneManager();
     static DeviceRegistry& devices();
     static CanRouter& can();

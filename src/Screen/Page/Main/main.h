@@ -9,7 +9,6 @@ public:
     using Page::Page;
     static main& getInstance();
 
-    PageId id() const override { return PageId::Main; }
 };
 
 namespace Main {

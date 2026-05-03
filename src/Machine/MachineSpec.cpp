@@ -1,8 +1,11 @@
 ﻿#include "Machine/MachineSpec.h"
+#if !defined(X32_TARGET_HEAD_UNIT)
 #include "Controller/Registry.h"
+#endif
 
 namespace {
 
+#if !defined(X32_TARGET_HEAD_UNIT)
 using RegistryExistsFn = bool (*)(const Registry&, const String&);
 
 bool existsI2C(const Registry& registry, const String& name) {
@@ -56,6 +59,7 @@ void validateSectionRegistry(
         report.warnings.push_back(msg);
     }
 }
+#endif
 
 } // namespace
 
@@ -124,6 +128,11 @@ MachineSpec::Report MachineSpec::validateDeviceConfig(JsonObjectConst device) co
 MachineSpec::Report MachineSpec::validateRegistry(const Registry& registry) const {
     Report report;
 
+#if defined(X32_TARGET_HEAD_UNIT)
+    (void)registry;
+    report.warnings.push_back("[MachineSpec] Registry локальных моторов отключен в head-unit сборке.");
+    return report;
+#else
     if (type_ == Catalog::MachineType::UNKNOWN) {
         report.warnings.push_back("[MachineSpec] Неизвестный MachineType, проверка загруженных объектов невозможна.");
         return report;
@@ -139,6 +148,7 @@ MachineSpec::Report MachineSpec::validateRegistry(const Registry& registry) cons
     validateSectionRegistry("encoders", registry, existsEncoder, encoders_, report);
 
     return report;
+#endif
 }
 
 void MachineSpec::validateSectionConfig(

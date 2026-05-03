@@ -6,25 +6,14 @@ namespace Screen {
 
 class Page;
 
-enum class PageId : uint8_t {
-    None,
-    Load,
-    Main,
-    Info,
-    Error,
-    Task,
-    TaskRun,
-    Service,
-    Guillotine,
-    Paper
-};
-
+// Panel работает с объектами страниц, а не с общим enum-списком.
+// Это позволяет добавлять новые страницы динамически, не меняя центральный
+// заголовок экрана и не привязывая Page к generated id EEZ/LVGL.
 class Panel {
 public:
     bool init();
     void process();
 
-    void show(PageId page);
     void show(Page& page);
     void back();
 
@@ -38,12 +27,10 @@ public:
                   bool cancelVisible);
     void showError(const String& title, const String& message);
 
-    PageId activePage() const { return activePage_; }
     Page* activePageObject() { return activePageObject_; }
     const Page* activePageObject() const { return activePageObject_; }
 
 private:
-    PageId activePage_ = PageId::None;
     Page* activePageObject_ = nullptr;
     Page* previousPageObject_ = nullptr;
 };

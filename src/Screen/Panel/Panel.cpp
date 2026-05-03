@@ -14,10 +14,6 @@ void Panel::process() {
     }
 }
 
-void Panel::show(PageId page) {
-    activePage_ = page;
-}
-
 void Panel::show(Page& page) {
     if (activePageObject_ != &page) {
         if (activePageObject_ != nullptr) {
@@ -26,8 +22,6 @@ void Panel::show(Page& page) {
         previousPageObject_ = activePageObject_;
         activePageObject_ = &page;
     }
-
-    show(page.id());
 }
 
 void Panel::back() {
@@ -39,7 +33,6 @@ void Panel::back() {
 
     activePageObject_ = previousPageObject_;
     previousPageObject_ = nullptr;
-    show(activePageObject_->id());
 }
 
 void Panel::setLoadStatus(const String& text) {

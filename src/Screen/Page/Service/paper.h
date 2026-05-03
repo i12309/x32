@@ -9,7 +9,6 @@ public:
     using Page::Page;
     static paper& getInstance();
 
-    PageId id() const override { return PageId::Paper; }
 };
 
 namespace Service {

@@ -6,12 +6,19 @@
 #include "Core.h"
 #include "Data.h"
 #include "Device/DeviceRegistry.h"
+#include "Machine/Machine.h"
+#if !defined(X32_TARGET_HEAD_UNIT)
+#include "Controller/Trigger.h"
+#include "Machine/Context/IMachineContext.h"
 #include "Service/ESPUpdate.h"
 #include "Service/HServer.h"
 #include "Service/MQTTC.h"
+#endif
 #include "Service/NVS.h"
 #include "Service/Stats.h"
+#if !defined(X32_TARGET_HEAD_UNIT)
 #include "Service/WiFiConfig.h"
+#endif
 #include "State/State.h"
 #include "Screen/Page/Main/load.h"
 #include "version.h"
@@ -125,10 +132,14 @@ public:
         if (!plan.hasPending()) {
             Log::L(" === END LOAD v.%s", Version::makeDeviceVersion(-1).c_str());
             Data::param.reset();
+#if !defined(X32_TARGET_HEAD_UNIT)
             App::ctx().reg.reset();
+#endif
             App::mode() = Mode::NORMAL;
             App::diag().clearErrors();
+#if !defined(X32_TARGET_HEAD_UNIT)
             ESPUpdate::getInstance().markCurrentFirmwareValid();
+#endif
             if (*App::cfg().checkSystem == 1) {
                 setStatus("Check system");
                 return Factory(State::Type::CHECK);
@@ -226,10 +237,15 @@ private:
         if (bootCount > 3) {
             if (nvs.getInt("ota_pending", 0, "boot") == 1) {
                 setStatusFail("OTA boot failed, rollback");
+#if defined(X32_TARGET_HEAD_UNIT)
+                requestAbort(State::Type::NULL_STATE);
+                return true;
+#else
                 if (ESPUpdate::getInstance().rollbackToPreviousPartition("boot_count exceeded")) {
                     requestHalt();
                     return true;
                 }
+#endif
             }
             nvs.setInt("boot_count", 0, "boot");
             nvs.setInt("ota_pending", 0, "boot");
@@ -298,13 +314,20 @@ private:
 
     static bool ConnectWiFi() {
         setStatus("Connect Wi-Fi");
+#if defined(X32_TARGET_HEAD_UNIT)
+        context().wifiConnected = false;
+#else
         BootContext& boot = context();
         boot.wifiConnected = (*App::cfg().connectWifi == 1) && WiFiConfig::getInstance().begin();
+#endif
         return true;
     }
 
     static bool UpdateFirmware() {
         setStatus("Check firmware update");
+#if defined(X32_TARGET_HEAD_UNIT)
+        return true;
+#else
         if (!context().wifiConnected) return true;
 
         if ((*App::cfg().autoUpdate == 1) && (*App::cfg().updateEsp == 1)) {
@@ -316,21 +339,26 @@ private:
             }
         }
         return true;
+#endif
     }
 
     static bool StartHttp() {
         setStatus("Start HTTP");
+#if !defined(X32_TARGET_HEAD_UNIT)
         if (context().wifiConnected && (*App::cfg().httpServer == 1)) {
             HServer::getInstance().begin();
         }
+#endif
         return true;
     }
 
     static bool ConnectMQTT() {
         setStatus("Connect MQTT");
+#if !defined(X32_TARGET_HEAD_UNIT)
         if (context().wifiConnected) {
             MQTTc::getInstance().connect();
         }
+#endif
         return true;
     }
 
@@ -346,7 +374,9 @@ private:
 
     static bool RegisterRuntimeEvents() {
         setStatus("Register runtime events");
+#if !defined(X32_TARGET_HEAD_UNIT)
         Trigger::getInstance().registerTrigger();
+#endif
         return true;
     }
 };

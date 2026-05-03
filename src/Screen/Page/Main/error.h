@@ -9,8 +9,6 @@ public:
     using Page::Page;
     static error& getInstance();
 
-    PageId id() const override { return PageId::Error; }
-
     void showError(const String& title, const String& message);
 };
 
