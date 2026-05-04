@@ -1,6 +1,9 @@
 #include "Load.h"
 
+#include "App/App.h"
+#include "Screen/Page/Main/Main.h"
 #include "Screen/Panel/LvglHelpers.h"
+#include "State/State.h"
 #include "version.h"
 
 #include <WiFi.h>
@@ -23,10 +26,19 @@ void Load::onShow() {
     checkVersion();
 }
 
+void Load::onTick() {
+    if (App::state() == nullptr || App::state()->type() != State::Type::IDLE) return;
+    Main::instance().show();
+}
+
 bool Load::checkVersion() {
     Ui::setText(objects.load_version, firmwareVersion());
     Ui::setText(objects.load_ma_caddress, WiFi.macAddress());
     return true;
+}
+
+void Load::setModel(const String& text) {
+    Ui::setText(objects.load_model, text);
 }
 
 }  // namespace Screen

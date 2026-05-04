@@ -11,9 +11,11 @@ public:
     static Load& instance();
 
     bool checkVersion();
+    void setModel(const String& text);
 
 protected:
     void onShow() override;
+    void onTick() override;
 
 private:
     Load() : Page(SCREEN_ID_LOAD) {}

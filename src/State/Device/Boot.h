@@ -10,9 +10,8 @@
 #include "Service/Stats.h"
 #include "version.h"
 
-#include "UI/Main/pLoad.h"
-#include "UI/Main/pINFO.h"
-#include "UI/Main/pINIT.h"
+#include "Screen/Page/Main/INIT.h"
+#include "Screen/Page/Main/Load.h"
 #include "State/State.h"
 #include "Controller/McpTrigger.h"
 #include "App/App.h"
@@ -21,7 +20,6 @@ class Boot : public State {
 private:
     struct BootContext {
         bool wifiConnected = false;
-        bool displayReady = false;
         bool abortRequested = false;
         bool haltRequested = false;
         State::Type abortState = State::Type::NULL_STATE;
@@ -46,14 +44,6 @@ private:
     static void requestHalt() {
         context().haltRequested = true;
     }
-
-    static void setStatus(const String& text) {
-        Log::D("BOOT: %s", text.c_str());
-    }
-
-    static void setStatusFail(const String& text) {
-        Log::E("BOOT: %s", text.c_str());
-    }
 public:
     Boot() : State(State::Type::BOOT) {}
 
@@ -65,17 +55,12 @@ public:
         plan.beginPlan(this->type());
 
         plan.addAction(State::Type::ACTION, &Boot::LogStart, "LogStart");
-        plan.addAction(State::Type::ACTION, &Boot::InitDisplay, "InitDisplay");
         plan.addAction(State::Type::ACTION, &Boot::ShowLoadScreen, "ShowLoadScreen");
         plan.addAction(State::Type::ACTION, &Boot::InitFileSystem, "InitFileSystem");
         plan.addAction(State::Type::ACTION, &Boot::InitNVS, "InitNVS");
         plan.addAction(State::Type::ACTION, &Boot::LoadConfig, "LoadConfig");
         plan.addAction(State::Type::ACTION, &Boot::ConnectWiFi, "ConnectWiFi");
         plan.addAction(State::Type::ACTION, &Boot::UpdateESP, "UpdateESP");
-        // Старые шаги Nextion пока не запускаем в LVGL boot path.
-        // plan.addAction(State::Type::ACTION, &Boot::TryRecoverNextionIfMissing, "TryRecoverNextionIfMissing");
-        // plan.addAction(State::Type::ACTION, &Boot::SetTFTVersion, "SetTFTVersion");
-        // plan.addAction(State::Type::ACTION, &Boot::UpdateTFT, "UpdateTFT");
         plan.addAction(State::Type::ACTION, &Boot::StartHttp, "StartHTTP");
         plan.addAction(State::Type::ACTION, &Boot::ConnectMQTT, "ConnectMQTT");
         plan.addAction(State::Type::ACTION, &Boot::LoadData, "LoadData");
@@ -106,7 +91,7 @@ public:
             App::diag().clearErrors();
             ESPUpdate::getInstance().markCurrentFirmwareValid(); // Boot completed; CHECK_SYSTEM validates hardware, not OTA viability.
             if (*App::cfg().checkSystem == 1) {
-                setStatus("Проверка устройства");
+                Log::D("BOOT: %s", "Проверка устройства");
                 return Factory(State::Type::CHECK);
             }
             return Factory(State::Type::IDLE);
@@ -123,41 +108,34 @@ private:
         return true;
     }
 
-    static bool InitDisplay() {
-        BootContext& boot = context();
-        boot.displayReady = true;
-        return true;
-    }
-
     static bool ShowLoadScreen() {
-        setStatus("LVGL UI");
+        Screen::Load::instance().show();
+        Log::D("BOOT: %s", "LVGL UI");
         return true;
     }
 
     static bool InitFileSystem() {
-        setStatus("Инициализация файловой системы");
+        Log::D("BOOT: %s", "Инициализация файловой системы");
         if (FileSystem::init(true)) {
             return true;
         }
 
-        setStatusFail("Ошибка файловой системы");
+        Log::D("BOOT: %s", "Ошибка файловой системы");
         Log::E(" === ERROR FileSystem Init ");
         requestAbort(State::Type::NULL_STATE);
         return true;
     }
 
     static bool InitNVS() {
-        setStatus("Инициализация NVS");
+        Log::D("BOOT: %s", "Инициализация NVS");
         NVS& nvs = NVS::getInstance();
         nvs.init();
-        if (nvs.getInt("tft_rcnt", 0, "boot") > 2) nvs.setInt("tft_rcnt", 2, "boot");
-        if (context().displayReady && nvs.getInt("tft_rcnt", 0, "boot") != 0) nvs.setInt("tft_rcnt", 0, "boot");
 
         int bootCount = nvs.getInt("boot_count", 0, "boot");
         bootCount++;
         if (bootCount > 3) {
             if (nvs.getInt("ota_pending", 0, "boot") == 1) {
-                setStatusFail("OTA boot failed, rollback");
+                Log::D("BOOT: %s", "OTA boot failed, rollback");
                 if (ESPUpdate::getInstance().rollbackToPreviousPartition("boot_count exceeded")) {
                     requestHalt();
                     return true;
@@ -175,70 +153,38 @@ private:
     }
 
     static bool LoadConfig() {
-        setStatus("Загрузка конфигурации");
-        if (Core::config.load(!context().displayReady)) {
+        Log::D("BOOT: %s", "Загрузка конфигурации");
+        if (Core::config.load(false)) {
             String machineError;
             String selectedMachine = *App::cfg().machineName;
             if (!App::machine().selectByName(selectedMachine, &machineError)) {
-                setStatusFail(machineError);
+                Log::D("BOOT: %s", machineError.c_str());
                 Log::E(" === ERROR Machine Select: %s", machineError.c_str());
-                // TODO(LVGL): открыть экран первичной настройки.
-                // pINIT::getInstance().show();
+                Screen::INIT::instance().show();
                 requestAbort(State::Type::NULL_STATE);
                 return true;
             }
+            Screen::Load::instance().setModel(selectedMachine);
             return true;
         }
 
-        setStatusFail("Ошибка загруки config"); //TODO надо сделать что бы при этой ошибке http был доступен и можно было исправить config
+        Log::D("BOOT: %s", "Ошибка загруки config"); //TODO надо сделать что бы при этой ошибке http был доступен и можно было исправить config
         Log::E(" === ERROR Core::config.load");
-        Core::config.print_config();  // отладка - выведем что в config при ошибке
-        // TODO(LVGL): открыть экран первичной настройки.
-        // pINIT::getInstance().show();
+        Screen::INIT::instance().show();
+        //Core::config.print_config();  // отладка - выведем что в config при ошибке
         requestAbort(State::Type::NULL_STATE);
         return true;
     }
 
     static bool ConnectWiFi() {
-        setStatus("Подключение к Wi-Fi");
+        Log::D("BOOT: %s", "Подключение к Wi-Fi");
         BootContext& boot = context();
         boot.wifiConnected = (*App::cfg().connectWifi == 1) && WiFiConfig::getInstance().begin();
         return true;
     }
 
-    static bool TryRecoverNextionIfMissing() {
-        setStatus("Восстановление интерфейса");
-        if (context().displayReady) return true; // а экран то работает
-        if (!context().wifiConnected) return true; // а связи нет
-
-        NVS& nvs = NVS::getInstance();
-        int tftRecoveryCount = nvs.getInt("tft_rcnt", 0, "boot");
-        if (tftRecoveryCount >= 2) return true;
-
-        int nextAttempt = tftRecoveryCount + 1;
-        nvs.setInt("tft_rcnt", nextAttempt, "boot");
-        Log::L("Попытка восстановить экран %d/2", nextAttempt);
-
-        int level = NexUpdate::getInstance().checkForUpdate();
-        if (level <= 0) {
-            level = 2;
-            Log::D("No newer TFT version found. Using forced recovery level %d", level);
-        }
-
-        nvs.setInt("tft_rcnt", 0, "boot"); // TODO - тут стоит подумать может все таки это поместить внутри upload
-
-        if (NexUpdate::getInstance().upload(level, true)) {
-            Log::L("Nextion recovery success on attempt %d/2. Rebooting...", nextAttempt);
-            requestHalt();
-            return true;
-        }
-
-        Log::E("Nextion recovery failed on attempt %d/2", nextAttempt);
-        return true;
-    }
-
     static bool UpdateESP() {
-        setStatus("Проверка обновлений прошивки");
+        Log::D("BOOT: %s", "Проверка обновлений прошивки");
         if (!context().wifiConnected) return true;
 
         if ((*App::cfg().autoUpdate == 1) && (*App::cfg().updateEsp == 1)) {
@@ -257,38 +203,8 @@ private:
         return true;
     }
 
-    static bool SetTFTVersion() {
-        if (!context().displayReady) {
-            NexUpdate::getInstance().setCurrentVersion(-1);
-            return true;
-        }
-
-        setStatus("Проверка версии экрана");
-        NexUpdate::getInstance().setCurrentVersion(pLoad::getInstance().getHMIVersion());
-        Log::L("Device version: %s", Version::makeDeviceVersion(NexUpdate::getInstance().getCurrentVersion()).c_str());
-        return true;
-    }
-
-    static bool UpdateTFT() {
-        setStatus("Обновление интерфейса");
-        if (!context().wifiConnected) return true;
-
-        if ((*App::cfg().autoUpdate == 1) && (*App::cfg().updateTft == 1)) {
-            int level = NexUpdate::getInstance().checkForUpdate();
-            if (level > 0) {
-                if (context().displayReady) pLoad::getInstance().text("Обновление интерфейса");
-                if (NexUpdate::getInstance().upload(level, true)) {
-                    requestHalt();
-                    return true;
-                }
-                Log::E("Nextion update failed in boot flow");
-            }
-        }
-        return true;
-    }
-
     static bool StartHttp() {
-        setStatus("Запуск HTTP сервера");
+        Log::D("BOOT: %s", "Запуск HTTP сервера");
         if (context().wifiConnected && (*App::cfg().httpServer == 1)) {
             HServer::getInstance().begin();
         }
@@ -296,7 +212,7 @@ private:
     }
 
     static bool ConnectMQTT() {
-        setStatus("Подключение к серверу");
+        Log::D("BOOT: %s", "Подключение к серверу");
         if (context().wifiConnected) {
             MQTTc::getInstance().connect(); // подключится
         }
@@ -304,7 +220,7 @@ private:
     }
 
     static bool LoadData() {
-        setStatus("Загрузка данных");
+        Log::D("BOOT: %s", "Загрузка данных");
         // проверка лицензии
         /*
         if (!Licence::getInstance().isValid()) {
@@ -322,10 +238,10 @@ private:
         return true;
     }
     static bool InitRegistry() {
-        setStatus("Инициализация устройств");
+        Log::D("BOOT: %s", "Инициализация устройств");
         String registry_error_message;
         if (!App::reg().init(&registry_error_message)) { // Инициализация устройства
-            setStatusFail(registry_error_message);
+            Log::D("BOOT: %s", registry_error_message.c_str());
             Log::E(" === ERROR Registry Init: %s", registry_error_message.c_str());
             requestAbort(State::Type::NULL_STATE);
             return true;
@@ -335,7 +251,7 @@ private:
         Machine& machine = App::machine();
         String machineError;
         if (!machine.bindRegistry(App::reg(), &machineError)) {
-            setStatusFail(machineError);
+            Log::D("BOOT: %s", machineError.c_str());
             Log::E(" === ERROR Machine Bind: %s", machineError.c_str());
             requestAbort(State::Type::NULL_STATE);
             return true;
@@ -351,7 +267,7 @@ private:
             if (!specReport.errors.empty()) {
                 failText = specReport.errors.front();
             }
-            setStatusFail(failText);
+            Log::D("BOOT: %s", failText.c_str());
             for (const String& err : specReport.errors) {
                 Log::E("%s", err.c_str());
             }
@@ -378,7 +294,7 @@ private:
     }
 
     static bool RegisterTriggers() {
-        setStatus("Регистрация триггеров");
+        Log::D("BOOT: %s", "Регистрация триггеров");
         Trigger::getInstance().registerTrigger();
         McpTrigger::getInstance().init();
         return true;
