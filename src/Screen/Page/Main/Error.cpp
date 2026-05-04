@@ -2,8 +2,11 @@
 
 #include "App/App.h"
 #include "Catalog.h"
+#include "Screen/Page/Main/Main.h"
+#include "Screen/Page/Service/Service.h"
 #include "Screen/Panel/LvglHelpers.h"
 #include "Service/DeviceError.h"
+#include "State/State.h"
 
 #include <ui/screens.h>
 
@@ -14,9 +17,50 @@ Error& Error::instance() {
     return page;
 }
 
+void Error::onPrepare() {
+    Ui::onPop(objects.info_back, Error::popBack);
+    Ui::onPop(objects.info_next, Error::popNext);
+    Ui::onPop(objects.info_cancel, Error::popService);
+    Ui::onPop(objects.info_ok, Error::popReset);
+}
+
 void Error::onShow() {
     App::diag().resetCursor();
     renderError();
+}
+
+void Error::popBack(lv_event_t* e) {
+    (void)e;
+    if (Page::activePage() != &instance()) return;
+
+    App::diag().prev();
+    instance().renderError();
+}
+
+void Error::popNext(lv_event_t* e) {
+    (void)e;
+    if (Page::activePage() != &instance()) return;
+
+    App::diag().next();
+    instance().renderError();
+}
+
+void Error::popService(lv_event_t* e) {
+    (void)e;
+    if (Page::activePage() != &instance()) return;
+
+    App::diag().clear();
+    if (App::state() != nullptr) App::state()->setFactory(State::Type::SERVICE);
+    Service::instance().show();
+}
+
+void Error::popReset(lv_event_t* e) {
+    (void)e;
+    if (Page::activePage() != &instance()) return;
+
+    App::diag().clear();
+    if (App::state() != nullptr) App::state()->setFactory(State::Type::IDLE);
+    Main::instance().show();
 }
 
 void Error::renderError() {
@@ -51,10 +95,11 @@ void Error::renderError() {
         Ui::setText(objects.info_field3, "");
     }
 
-    Ui::setText(objects.info_ok, "OK");
-    Ui::setHidden(objects.info_cancel, true);
-    // TODO(ui-lvgl): в EEZ нет отдельной страницы Error и отдельных кнопок next/back/service.
-    // После добавления именованных объектов подключить callbacks через Ui::onPop().
+    Ui::setText(objects.info_cancel, "Сервис");
+    Ui::setText(objects.info_ok, "Сброс");
+    Ui::setHidden(objects.info_cancel, false);
+    Ui::setHidden(objects.info_back, !errors.canPrev());
+    Ui::setHidden(objects.info_next, !errors.canNext());
 }
 
 }  // namespace Screen

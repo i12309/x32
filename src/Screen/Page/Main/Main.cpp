@@ -68,9 +68,7 @@ void Main::checkLicenseOnce() {
 }
 
 void Main::checkStartButton() {
-    if (App::ctx().reg.getButton("START")->isTrigger()) {
-        popTask(nullptr);
-    }
+    //if (App::ctx().reg.getButton("START")->isTrigger()) {popTask(nullptr);}
 }
 
 void Main::popTask(lv_event_t* e) {

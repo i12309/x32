@@ -1,6 +1,7 @@
 #pragma once
 #include "State/State.h"
 #include "UI/Main/pERROR.h"
+#include "Screen/Page/Main/Error.h"
 
 class Error : public State {
 public:
@@ -10,7 +11,8 @@ public:
     void oneRun() override {
         State::oneRun();
         App::plan().clear();
-        pERROR::getInstance().show();
+        Screen::Error::instance().show();
+        //pERROR::getInstance().show();
 
         // При ошибке останавливаем все моторы!
         App::ctx().reg.emergencyMotor();

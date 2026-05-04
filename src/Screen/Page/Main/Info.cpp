@@ -45,6 +45,8 @@ void Info::render(const String& text1,
     Ui::setText(objects.info_ok, okText.length() > 0 ? okText : "OK");
     Ui::setText(objects.info_cancel, cancelText.length() > 0 ? cancelText : "Отмена");
     Ui::setHidden(objects.info_cancel, !showCancel);
+    Ui::setHidden(objects.info_back, true);
+    Ui::setHidden(objects.info_next, true);
 }
 
 void Info::resetCallbacks() {
@@ -54,6 +56,8 @@ void Info::resetCallbacks() {
 
 void Info::popOk(lv_event_t* e) {
     (void)e;
+    if (Page::activePage() != &instance()) return;
+
     Info& page = instance();
     std::function<void()> callback = page.okCallback_;
     page.resetCallbacks();
@@ -67,6 +71,8 @@ void Info::popOk(lv_event_t* e) {
 
 void Info::popCancel(lv_event_t* e) {
     (void)e;
+    if (Page::activePage() != &instance()) return;
+
     Info& page = instance();
     std::function<void()> callback = page.cancelCallback_;
     page.resetCallbacks();

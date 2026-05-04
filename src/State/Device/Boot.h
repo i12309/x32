@@ -238,7 +238,7 @@ private:
         return true;
     }
     static bool InitRegistry() {
-        Log::D("BOOT: %s", "Инициализация устройств");
+        /*Log::D("BOOT: %s", "Инициализация устройств");
         String registry_error_message;
         if (!App::reg().init(&registry_error_message)) { // Инициализация устройства
             Log::D("BOOT: %s", registry_error_message.c_str());
@@ -284,7 +284,7 @@ private:
         }
         if (!machine.readyForMotion()) {
             Log::D("[Machine] Motion is not ready after registry binding.");
-        }
+        }*/
 
         // ----
         Data::param.reset();
@@ -294,9 +294,9 @@ private:
     }
 
     static bool RegisterTriggers() {
-        Log::D("BOOT: %s", "Регистрация триггеров");
+        /*Log::D("BOOT: %s", "Регистрация триггеров");
         Trigger::getInstance().registerTrigger();
-        McpTrigger::getInstance().init();
+        McpTrigger::getInstance().init();*/
         return true;
     }
 
