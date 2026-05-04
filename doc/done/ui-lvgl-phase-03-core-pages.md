@@ -28,7 +28,7 @@
 
 ## Общие правила
 
-1. Новые классы живут в `src/Screen/Page/<Name>.h|cpp`.
+1. Новые классы этого этапа живут в `src/Screen/Page/Main/<Name>.h|cpp`.
 2. Имена классов без суффикса `Page`: `Load`, `Main`, `Info`, `Input`, `INIT`, `Wait`, `Error`.
 3. Доступ к странице только через singleton:
 

@@ -2,7 +2,7 @@
 
 #include "App/App.h"
 #include "Data.h"
-#include "Screen/Page/Info.h"
+#include "Screen/Page/Main/Info.h"
 #include "Screen/Panel/LvglHelpers.h"
 #include "Service/Licence.h"
 #include "Service/WiFiConfig.h"
