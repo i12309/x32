@@ -84,6 +84,18 @@ inline void setHidden(lv_obj_t* obj, bool hidden) {
     }
 }
 
+inline void setEnabled(lv_obj_t* obj, bool enabled) {
+    if (obj == nullptr) return;
+    if (enabled) {
+        lv_obj_remove_state(obj, LV_STATE_DISABLED);
+        lv_obj_clear_flag(obj, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_flag(obj, LV_OBJ_FLAG_CLICKABLE);
+    } else {
+        lv_obj_add_state(obj, LV_STATE_DISABLED);
+        lv_obj_clear_flag(obj, LV_OBJ_FLAG_CLICKABLE);
+    }
+}
+
 inline lv_obj_t* firstChild(lv_obj_t* obj) {
     if (obj == nullptr || lv_obj_get_child_count(obj) == 0) return nullptr;
     return lv_obj_get_child(obj, 0);
@@ -128,6 +140,31 @@ inline uint32_t dropdownSelected(lv_obj_t* obj) {
 inline void dropdownSetSelected(lv_obj_t* obj, uint32_t index) {
     if (obj == nullptr) return;
     lv_dropdown_set_selected(obj, index);
+}
+
+inline void setValue(lv_obj_t* obj, int32_t value) {
+    if (obj == nullptr) return;
+
+    if (lv_obj_check_type(obj, &lv_slider_class)) {
+        lv_slider_set_value(obj, value, LV_ANIM_OFF);
+        return;
+    }
+
+    if (lv_obj_check_type(obj, &lv_spinbox_class)) {
+        lv_spinbox_set_value(obj, value);
+        return;
+    }
+
+    setText(obj, String(value));
+}
+
+inline int32_t getValue(lv_obj_t* obj) {
+    if (obj == nullptr) return 0;
+
+    if (lv_obj_check_type(obj, &lv_slider_class)) return lv_slider_get_value(obj);
+    if (lv_obj_check_type(obj, &lv_spinbox_class)) return lv_spinbox_get_value(obj);
+
+    return getText(obj).toInt();
 }
 
 }  // namespace Ui

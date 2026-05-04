@@ -1,8 +1,15 @@
 #include "Main.h"
 
 #include "App/App.h"
+#include "Catalog.h"
 #include "Data.h"
+#include "Screen/Page/Help/Help.h"
 #include "Screen/Page/Main/Info.h"
+#include "Screen/Page/Profile/ProfileList.h"
+#include "Screen/Page/Service/Service.h"
+#include "Screen/Page/Statistics/Statistics.h"
+#include "Screen/Page/Task/TaskRun.h"
+#include "Screen/Page/Wifi/Wifi.h"
 #include "Screen/Panel/LvglHelpers.h"
 #include "Service/Licence.h"
 #include "Service/WiFiConfig.h"
@@ -74,32 +81,34 @@ void Main::popTask(lv_event_t* e) {
     }
 
     Data::param.frame = 0;
-    // TODO(ui-lvgl): после переноса TaskRun вызвать Screen::TaskRun::instance().show().
+    TaskRun::instance().setBackPage(Catalog::PageMode::pMain);
+    TaskRun::instance().show();
 }
 
 void Main::popProfile(lv_event_t* e) {
     (void)e;
-    // TODO(ui-lvgl): после переноса ProfileList вызвать Screen::ProfileList::instance().show().
+    ProfileList::instance().setBackPage(Catalog::PageMode::pMain);
+    ProfileList::instance().show();
 }
 
 void Main::popSettings(lv_event_t* e) {
     (void)e;
-    // TODO(ui-lvgl): после переноса Wifi вызвать Screen::Wifi::instance().show().
+    Wifi::instance().show();
 }
 
 void Main::popService(lv_event_t* e) {
     (void)e;
-    // TODO(ui-lvgl): после переноса Service вызвать Screen::Service::instance().show().
+    Service::instance().show();
 }
 
 void Main::popStats(lv_event_t* e) {
     (void)e;
-    // TODO(ui-lvgl): после переноса Stats вызвать Screen::Stats::instance().show().
+    Statistics::instance().show();
 }
 
 void Main::popHelp(lv_event_t* e) {
     (void)e;
-    // TODO(ui-lvgl): после переноса Help/Update вызвать Screen::Help::instance().show().
+    Help::instance().show();
 }
 
 }  // namespace Screen
