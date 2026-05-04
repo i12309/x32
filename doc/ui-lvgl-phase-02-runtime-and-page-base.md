@@ -7,6 +7,7 @@
 ## Работы
 
 1. Создать `src/Screen/Page/Page.h|cpp`:
+   - класс живет в `namespace Screen`, чтобы не конфликтовать со старым Nextion `src/UI/Page.h`;
    - `screenId`;
    - `prepareOnce()`;
    - `show()`, `hide()`, `back()`;
@@ -23,13 +24,15 @@
    - доступ только через `<Name>::instance()`;
    - показ страницы: `<Name>::instance().show()`;
    - элементы страницы используются напрямую из EEZ generated `objects`: `objects.main_task`, `objects.load_version`.
-4. Подключить `Page::process()` в `App::process()` рядом с `State::process()`.
+4. Подключить `Screen::Page::process()` в `App::process()` рядом с `State::process()`.
 
 `Pages.h|cpp`, `MainObjects`, wrapper-поля и генератор фасадов на этом этапе не создаются. Если позже прямые `objects.*` начнут мешать, можно добавить фасад только для реально сложных страниц.
 
 ## Пример целевого класса
 
 ```cpp
+namespace Screen {
+
 class Load : public Page {
 public:
     static Load& instance() {
@@ -44,6 +47,8 @@ public:
 private:
     Load() : Page(SCREEN_ID_LOAD) {}
 };
+
+}  // namespace Screen
 ```
 
 Внутри `Load` допустимы только обращения к `objects.*`, `Ui::*` helpers и сервисам. Создание `lv_label_create`, установка layout, размеров и стилей остается в EEZ.
@@ -51,6 +56,8 @@ private:
 ## Базовый класс страницы
 
 ```cpp
+namespace Screen {
+
 class Page {
 public:
     explicit Page(ScreensEnum screenId);
@@ -76,6 +83,8 @@ private:
     static Page* activePage_;
     static Page* previousPage_;
 };
+
+}  // namespace Screen
 ```
 
 `show()` вызывает `prepareOnce()`, затем `loadScreen(screenId_)`, затем `onShow()`. `prepareOnce()` вызывает `onPrepare()` только один раз, чтобы callbacks не навешивались повторно при каждом показе страницы.
@@ -102,7 +111,7 @@ void Main::popTask(lv_event_t* e) {
 }
 
 void Main::openTask() {
-    TaskRun::instance().show();
+    Screen::TaskRun::instance().show();
 }
 ```
 
@@ -156,6 +165,8 @@ Ui::setText(Ui::firstLabel(objects.main_task), "Новое задание");
 `objects.main_task` создается в EEZ generated коде как `lv_button_create(...)`. При нажатии открываем `TaskRun`:
 
 ```cpp
+namespace Screen {
+
 class Main : public Page {
 public:
     static Main& instance() {
@@ -182,6 +193,8 @@ private:
         Service::instance().show();
     }
 };
+
+}  // namespace Screen
 ```
 
 ## Проверки

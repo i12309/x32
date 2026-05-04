@@ -7,6 +7,7 @@
 #include "Service/DeviceError.h"
 #include "Service/Log.h"
 #include "Service/Service.h"
+#include "Screen/Page/Page.h"
 #include "Screen/Panel/Panel.h"
 #include "State/PlanManager.h"
 #include "State/Scene.h"
@@ -160,6 +161,7 @@ void App::init() {
 void App::process() {
     Panel::process();
     State::process();
+    Screen::Page::process();
     if (App::ctx().mPaper != nullptr) App::ctx().mPaper->processPaperPulseTrace(); // STEPPER_PULSE_TRACE_TEMP
     Service::process();
 }
