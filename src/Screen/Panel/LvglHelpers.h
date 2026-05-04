@@ -1,8 +1,11 @@
 #pragma once
 
+#include <Arduino.h>
 #include <lvgl/lvgl.h>
 
 namespace Ui {
+
+inline lv_obj_t* firstLabel(lv_obj_t* obj);
 
 inline void onPop(lv_obj_t* obj, lv_event_cb_t cb, void* userData = nullptr) {
     if (obj == nullptr || cb == nullptr) return;
@@ -14,14 +17,52 @@ inline void onPush(lv_obj_t* obj, lv_event_cb_t cb, void* userData = nullptr) {
     lv_obj_add_event_cb(obj, cb, LV_EVENT_PRESSED, userData);
 }
 
-inline void setText(lv_obj_t* obj, const char* text) {
+inline void setText(lv_obj_t* obj, const String& text) {
     if (obj == nullptr) return;
-    lv_label_set_text(obj, text ? text : "");
+
+    const char* value = text.c_str();
+    if (lv_obj_check_type(obj, &lv_label_class)) {
+        lv_label_set_text(obj, value);
+        return;
+    }
+
+    if (lv_obj_check_type(obj, &lv_textarea_class)) {
+        lv_textarea_set_text(obj, value);
+        return;
+    }
+
+    if (lv_obj_check_type(obj, &lv_checkbox_class)) {
+        lv_checkbox_set_text(obj, value);
+        return;
+    }
+
+    lv_obj_t* label = firstLabel(obj);
+    if (label != nullptr) lv_label_set_text(label, value);
 }
 
-inline const char* getText(lv_obj_t* obj) {
+inline void setText(lv_obj_t* obj, const char* text) {
+    setText(obj, String(text ? text : ""));
+}
+
+inline String getText(lv_obj_t* obj) {
     if (obj == nullptr) return "";
-    return lv_label_get_text(obj);
+
+    if (lv_obj_check_type(obj, &lv_label_class)) {
+        return String(lv_label_get_text(obj));
+    }
+
+    if (lv_obj_check_type(obj, &lv_textarea_class)) {
+        return String(lv_textarea_get_text(obj));
+    }
+
+    if (lv_obj_check_type(obj, &lv_checkbox_class)) {
+        return String(lv_checkbox_get_text(obj));
+    }
+
+    lv_obj_t* label = firstLabel(obj);
+    if (label != nullptr) return String(lv_label_get_text(label));
+
+    return "";
 }
 
 inline void setBgColor(lv_obj_t* obj, lv_color_t color) {
@@ -58,6 +99,35 @@ inline lv_obj_t* firstLabel(lv_obj_t* obj) {
     }
 
     return nullptr;
+}
+
+inline void setChecked(lv_obj_t* obj, bool checked) {
+    if (obj == nullptr) return;
+    if (checked) {
+        lv_obj_add_state(obj, LV_STATE_CHECKED);
+    } else {
+        lv_obj_remove_state(obj, LV_STATE_CHECKED);
+    }
+}
+
+inline bool isChecked(lv_obj_t* obj) {
+    if (obj == nullptr) return false;
+    return (lv_obj_get_state(obj) & LV_STATE_CHECKED) != 0;
+}
+
+inline void dropdownSetOptions(lv_obj_t* obj, const String& options) {
+    if (obj == nullptr) return;
+    lv_dropdown_set_options(obj, options.c_str());
+}
+
+inline uint32_t dropdownSelected(lv_obj_t* obj) {
+    if (obj == nullptr) return 0;
+    return lv_dropdown_get_selected(obj);
+}
+
+inline void dropdownSetSelected(lv_obj_t* obj, uint32_t index) {
+    if (obj == nullptr) return;
+    lv_dropdown_set_selected(obj, index);
 }
 
 }  // namespace Ui
