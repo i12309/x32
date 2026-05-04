@@ -519,7 +519,7 @@ public:
 
     void reset() {
         //print();
-        Log::D("Обновляем параметры для переферии");
+        /*Log::D("Обновляем параметры для переферии");
 
         for (const auto& pair : motors) {
             const String& name = pair.first;
@@ -528,7 +528,7 @@ public:
                 stepper->setSpeed(); // Перезагружаем параметры
                 stepper->setCurrentPosition(0); // Сбрасываем позицию
             }
-        }
+        }*/
     }
 
     void print() {
