@@ -7,7 +7,7 @@
 #endif
 
 #ifndef APP_VERSION
-#define APP_VERSION "202"
+#define APP_VERSION "1"
 #endif
 
 #ifndef APP_BUILD_NUMBER
