@@ -3,9 +3,6 @@
 // Состояние для железа 
 #include "State/Device/Boot.h"
 #include "State/Device/Check.h"
-#include "State/Device/CheckPaper.h"
-#include "State/Device/CheckGuillotine.h"
-#include "State/Device/CheckTable.h"
 #include "State/Device/Pressure.h"
 
 // Системные состояния - для всех устройств 
@@ -62,10 +59,6 @@ State* State::Factory(State::Type type){
         //case State::Type::PAPER_OUT:      return new PaperOut(); break;
 
         case State::Type::GUILLOTINE_FORWARD:      return new GuillotineForward(); break;
-
-        case State::Type::CHECK_PAPER:        return new CheckPaper(); break;
-        case State::Type::CHECK_GUILLOTINE:   return new CheckGuillotine(); break;
-        case State::Type::CHECK_TABLE:        return new CheckTable(); break;
 
         case State::Type::ERROR:              return new Error(); break;
 

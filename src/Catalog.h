@@ -47,9 +47,6 @@ public:
 
         BOOT,
         PRESSURE,// Сервисное для измерений давления
-        CHECK_PAPER,
-        CHECK_GUILLOTINE,
-        CHECK_TABLE,
 
         TABLE_UP,
         TABLE_DOWN,
@@ -98,9 +95,6 @@ public:
 
             case State::BOOT:              return "BOOT";
             case State::PRESSURE:             return "PRESSURE";
-            case State::CHECK_PAPER:         return "CHECK_PAPER";
-            case State::CHECK_GUILLOTINE:    return "CHECK_GUILLOTINE";
-            case State::CHECK_TABLE:         return "CHECK_TABLE";
 
             // Станок
             case State::PROCESS:           return "PROCESS";
