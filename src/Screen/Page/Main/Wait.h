@@ -11,6 +11,8 @@ class Wait : public Page {
 public:
     static Wait& instance();
 
+    void setTexts(const String& text1, const String& text2, const String& text3);
+
     static void wait(const String& text1,
                      const String& text2,
                      const String& text3,
@@ -23,8 +25,6 @@ protected:
 
 private:
     Wait() : Page(SCREEN_ID_WAIT) {}
-
-    void setTexts(const String& text1, const String& text2, const String& text3);
 };
 
 }  // namespace Screen

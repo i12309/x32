@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Service/Stats.h"
+#include "Screen/Page/Main/Wait.h"
 #include "State/A/CanActions.h"
 #include "State/State.h"
-#include "UI/Main/pWAIT.h"
 
 class Calibration : public State {
 public:
@@ -53,7 +53,7 @@ public:
         PlanManager& plan = App::plan();
         if (!plan.hasPending()) {
             Stats::getInstance().save();
-            pWAIT::getInstance().back();
+            Screen::Wait::instance().back();
             return Factory(State::Type::SERVICE);
         }
         return Factory(plan.nextType(this->type()));

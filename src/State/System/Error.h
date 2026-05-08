@@ -1,6 +1,5 @@
 #pragma once
 #include "State/State.h"
-#include "UI/Main/pERROR.h"
 #include "Screen/Page/Main/Error.h"
 #include "Remote/CanMachine.h"
 
@@ -13,8 +12,6 @@ public:
         State::oneRun();
         App::plan().clear();
         Screen::Error::instance().show();
-        //pERROR::getInstance().show();
-
         // При ошибке останавливаем все моторы!
         Remote::CanMachine::instance().stopAll();
     }

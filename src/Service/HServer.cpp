@@ -291,7 +291,7 @@ void HServer::handleOtaESP32post_1() {
 void HServer::handleOtaESP32post_2() {
     HTTPUpload& upload = server.upload();
     if (upload.status == UPLOAD_FILE_START) {
-        pWAIT::wait("", "Обновление..", "", 0, nullptr, false);
+        Screen::Wait::wait("", "Обновление..", "", 0, nullptr, false);
         Serial.printf("Update: %s\n", upload.filename.c_str());
         if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {
             Update.printError(Serial);

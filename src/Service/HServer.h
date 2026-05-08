@@ -7,7 +7,7 @@
 #include "ESPUpdate.h"
 #include "Core.h"
 #include "WiFiConfig.h"
-#include "UI/Main/pWAIT.h"
+#include "Screen/Page/Main/Wait.h"
 
 class HServer {
 public:

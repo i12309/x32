@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Service/Stats.h"
+#include "Screen/Page/Main/Input.h"
+#include "Screen/Page/Profile/Profile.h"
 #include "State/A/CanActions.h"
 #include "State/State.h"
-#include "UI/Main/pINPUT.h"
-#include "UI/Profile/pProfile.h"
 
 class Profilling : public State {
 public:
@@ -62,7 +62,7 @@ private:
     }
 
     static void ShowProfileInput() {
-        pINPUT::showInput(
+        Screen::Input::showInput(
             "Измерение ширины",
             "Померяйте ширину полосок (до сотых)",
             "Внесите получившееся значение (в мм)",
@@ -84,15 +84,11 @@ private:
 
                 Data::work.profile.RATIO_mm = (Data::tuning.PROFILE_WIDTH_step / width);
 
-                pProfile::getInstance().show();
-
-                pProfile& profileUI = pProfile::getInstance();
-                String ratioText = String(Data::work.profile.RATIO_mm, 3);
-                profileUI.tRatioMM.setText(ratioText.c_str());
-                Log::D(ratioText.c_str());
+                Screen::Profile::instance().show();
+                Log::D(String(Data::work.profile.RATIO_mm, 3).c_str());
             },
             []() {
-                pProfile::getInstance().show();
+                Screen::Profile::instance().show();
             },
             2,
             false);

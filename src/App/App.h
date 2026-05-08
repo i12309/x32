@@ -8,7 +8,6 @@
 class Machine;
 class DeviceError;
 class State;
-class Page;
 class PlanManager;
 
 class App {
@@ -48,18 +47,12 @@ public:
             DeviceError* deviceError = nullptr;
         };
 
-        struct UiContext {
-            Page** activePage = nullptr;
-            Page** previousPage = nullptr;
-        };
-
         ConfigContext config;
         StorageContext storage;
         MachineRuntime machine;
         RuntimeContext runtime;
         PlanContext plan;
         DiagnosticsContext diagnostics;
-        UiContext ui;
     };
 
     App();

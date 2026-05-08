@@ -9,7 +9,6 @@
 #include "config.h"
 #include "Core.h"
 #include "Log.h"
-#include "UI/Main/pLoad.h"
 
 /**
  * Код загрузки прошивки Nextion согласно протоколу v1.1

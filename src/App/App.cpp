@@ -9,7 +9,6 @@
 #include "Screen/Panel/Panel.h"
 #include "State/PlanManager.h"
 #include "State/State.h"
-#include "UI/Page.h"
 
 namespace {
 App::Context buildAppContext() {
@@ -36,9 +35,6 @@ App::Context buildAppContext() {
 
     ctx.plan.manager = &PlanManager::instance();
     ctx.diagnostics.deviceError = &DeviceError::getInstance();
-
-    ctx.ui.activePage = &Page::activePage;
-    ctx.ui.previousPage = &Page::previousPage;
 
     return ctx;
 }

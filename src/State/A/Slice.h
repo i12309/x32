@@ -3,10 +3,10 @@
 #include <cstdint>
 
 #include "Service/Stats.h"
+#include "Screen/Page/Main/Wait.h"
+#include "Screen/Page/Service/Slice.h"
 #include "State/A/CanActions.h"
 #include "State/State.h"
-#include "UI/Main/pWAIT.h"
-#include "UI/Service/pSlice.h"
 
 class Slice : public State {
 public:
@@ -63,10 +63,10 @@ public:
 
         PlanManager& plan = App::plan();
         if (!plan.hasPending()) {
-            if (Page::activePage == &pWAIT::getInstance() && Page::previousPage != nullptr) {
-                pWAIT::getInstance().back();
+            if (Screen::Page::activePage() == &Screen::Wait::instance() && Screen::Page::previousPage() != nullptr) {
+                Screen::Wait::instance().back();
             } else {
-                pSlice::getInstance().show();
+                Screen::Slice::instance().show();
             }
 
             setSlicePageResult();
@@ -101,14 +101,12 @@ private:
     }
 
     static void updateWaitProgress(int currentSheet) {
-        pWAIT& wait = pWAIT::getInstance();
         String statusText = "Лист " + String(currentSheet) + "/" + String(requestedSheets());
-        wait.tText2.setText(statusText.c_str());
-        wait.tText3.setText(makeSliceResultText().c_str());
+        Screen::Wait::instance().setTexts("", statusText, makeSliceResultText());
     }
 
     static void setSlicePageResult() {
-        pSlice::getInstance().t1.setText(makeSliceResultText().c_str());
+        // TODO(ui-lvgl): add a named result field to SCREEN_ID_SLICE if this result must be visible there.
     }
 
     static float averageLengthMm() {
