@@ -26,24 +26,24 @@ public:
 
         plan.beginPlan(this->type());
         if (Data::param.productCutsCount == 1) { // первый рез 
-            plan.add(State::Type::TABLE_UP);
+            // Removed State/Main state call: TABLE_UP.
         }
 
         //### РАБОЧИЙ ЦИКЛ 
-        plan.add(State::Type::DETECT_PAPER);
-        plan.add(State::Type::DETECT_MARK);
+        // Removed State/Main state call: DETECT_PAPER.
+        // Removed State/Main state call: DETECT_MARK.
         plan.addAction(State::Type::ACTION, &Calibration::Feed, "Feed");
-        plan.add(State::Type::GUILLOTINE_FORWARD);
+        // Removed State/Main state call: GUILLOTINE_FORWARD.
         plan.addAction(State::Type::ACTION, &Calibration::LoopCut, "LoopCut");
         //######
 
         // дальше немного отрезаем от листа что бы метка стала ближе к краю
         plan.addAction(State::Type::ACTION, &Calibration::FeedForward, "FeedForward");// сначала двигаем вперед
-        plan.add(State::Type::GUILLOTINE_FORWARD);
+        // Removed State/Main state call: GUILLOTINE_FORWARD.
         plan.addAction(State::Type::ACTION, &Calibration::FeedBackward, "FeedBackward");// потом отматываем назад на нужное расстояние, чтобы 10 мм до отптического датчика
 
         if (Data::param.productCutsCount == Data::tuning.CUT_count) { // последний рез 
-            plan.add(State::Type::PAPER_MOVE,Catalog::WorkParam().Step(20000));
+            // Removed State/Main state call: PAPER_MOVE.
         }
 
         plan.printPlan();
@@ -77,7 +77,7 @@ private:
             PlanManager& plan = App::plan();
             
             plan.resetByActionName("Feed");
-            plan.resetByType(State::Type::GUILLOTINE_FORWARD);
+            // Removed State/Main state reset: GUILLOTINE_FORWARD.
             plan.resetByActionName("LoopCut");
             return true;
         }

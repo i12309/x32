@@ -17,23 +17,23 @@ public:
         PlanManager& plan = App::plan();
         plan.beginPlan(this->type());
 
-        plan.add(State::Type::TABLE_UP);
-        plan.add(State::Type::DETECT_PAPER);
-        if (Data::work.task.MARK) plan.add(State::Type::DETECT_MARK);
+        // Removed State/Main state call: TABLE_UP.
+        // Removed State/Main state call: DETECT_PAPER.
+        // Removed State/Main state call: DETECT_MARK.
 
         // цикл листа 
-        plan.add(State::Type::PAPER_PULL);
-        plan.add(State::Type::GUILLOTINE_FORWARD);
+        // Removed State/Main state call: PAPER_PULL.
+        // Removed State/Main state call: GUILLOTINE_FORWARD.
         plan.addAction(State::Type::ACTION, &A_PROCESS::CutLoop, "CutLoop");
 
         // вычисляем сколько в конце надо будет сделать финишных резов что бы хвост бумаги нашинковать 
         for(int i = 0; i < Data::getFinishCUTs_count(); i++) {
             //plan.addAction(State::Type::ACTION, &A_PROCESS::FeedEnd, "FeedEnd");
-            plan.add(State::Type::PAPER_MOVE,Catalog::WorkParam().Mm(15).Block(true));
-            plan.add(State::Type::GUILLOTINE_FORWARD);
+            // Removed State/Main state call: PAPER_MOVE.
+            // Removed State/Main state call: GUILLOTINE_FORWARD.
         }
 
-        plan.add(State::Type::PAPER_MOVE,Catalog::WorkParam().Step(10000));
+        // Removed State/Main state call: PAPER_MOVE.
 
         // цикл процесса
         plan.addAction(State::Type::ACTION, &A_PROCESS::CycleLoop, "CycleLoop");
@@ -52,10 +52,7 @@ public:
         }
 
         // Это для приладки. Остановка после каждого реза продукта  
-        if (Data::param.cutsCount % 2 == 1 && plan.lastType() == State::Type::GUILLOTINE_FORWARD && Data::param.frame) {
-            this->setNexTypeState(plan.nextType(this->type()));
-            return Factory(State::Type::FRAME);
-        }
+        // Removed State/Main state check: GUILLOTINE_FORWARD.
         return Factory(plan.nextType(this->type()));
     }
 
@@ -79,8 +76,8 @@ private:
 
         if (Data::param.productCutsCount < Data::work.TOTAL_CUTS) {
             PlanManager& plan = App::plan();
-            plan.resetByType(State::Type::PAPER_PULL);
-            plan.resetByType(State::Type::GUILLOTINE_FORWARD);
+            // Removed State/Main state reset: PAPER_PULL.
+            // Removed State/Main state reset: GUILLOTINE_FORWARD.
             plan.resetByActionName("CutLoop"); // сбрасываем текущий ACTION что бы в след раз еще раз запустить 
         }
         return true;
@@ -93,13 +90,13 @@ private:
         if (Data::param.cyclesCount < Data::work.TOTAL_CYCLES) {
             PlanManager& plan = App::plan();
 
-            plan.resetByType(State::Type::DETECT_PAPER);
-            if (Data::work.task.MARK) plan.resetByType(State::Type::DETECT_MARK);
-            plan.resetByType(State::Type::PAPER_PULL);
-            plan.resetByType(State::Type::GUILLOTINE_FORWARD);
+            // Removed State/Main state reset: DETECT_PAPER.
+            // Removed State/Main state reset: DETECT_MARK.
+            // Removed State/Main state reset: PAPER_PULL.
+            // Removed State/Main state reset: GUILLOTINE_FORWARD.
             plan.resetByActionName("CutLoop");
             plan.resetByActionName("FeedEnd");
-            plan.resetByType(State::Type::PAPER_MOVE);
+            // Removed State/Main state reset: PAPER_MOVE.
             plan.resetByActionName("CycleLoop");// сбрасываем текущий ACTION что бы в след раз еще раз запустить
             
             Log::D("Лист: %d из %d",Data::param.cyclesCount, Data::work.TOTAL_CYCLES); 

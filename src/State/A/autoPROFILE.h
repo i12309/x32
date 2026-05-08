@@ -24,14 +24,14 @@ public:
         plan.beginPlan(this->type());
 
         // 1) Поднимаем стол и находим передний край листа.
-        plan.add(State::Type::TABLE_UP);
-        plan.add(State::Type::DETECT_PAPER);
+        // Removed State/Main state call: TABLE_UP.
+        // Removed State/Main state call: DETECT_PAPER.
         // 2) Ищем вход в метку (переход бумага -> метка).
-        plan.add(State::Type::DETECT_MARK);
+        // Removed State/Main state call: DETECT_MARK.
         plan.addAction(State::Type::ACTION, &autoPROFILE::SaveMarkIn, "SaveMarkIn");
         // 3) Ищем выход из метки (переход метка -> бумага).
         // Для этого используем уже существующее DETECT_PAPER (FALLING), без отдельного состояния.
-        plan.add(State::Type::DETECT_PAPER);
+        // Removed State/Main state call: DETECT_PAPER.
         plan.addAction(State::Type::ACTION, &autoPROFILE::Calculate, "Calculate");
 
         plan.printPlan();

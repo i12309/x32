@@ -16,15 +16,6 @@
 #include "State/System/Service.h"
 
 // Общие для разных устройств состояния 
-#include "State/Main/TableUp.h"
-#include "State/Main/DetectPaper.h"
-#include "State/Main/DetectMark.h"
-#include "State/Main/GuillotineForward.h"
-#include "State/Main/PaperMove.h"
-
-#include "State/Main/PaperPull.h"
-//#include "State/Main/PaperOut.h"
-
 // MODEL A - Состояния для простого нарезчик визиток
 #include "State/A/Process.h"
 #include "State/A/Calibration.h"
@@ -43,17 +34,6 @@ State* State::Factory(State::Type type){
         case State::Type::BOOT:                return new Boot(); break;
         case State::Type::IDLE:                return new Idle(); break;
         case State::Type::FINISH:                return new FINISH(); break;
-
-        case State::Type::TABLE_UP:            return new TableUp(); break;
-
-        case State::Type::DETECT_PAPER:       return new DetectPaper(); break;
-        case State::Type::DETECT_MARK:        return new DetectMark(); break;
-        case State::Type::PAPER_MOVE:          return new PaperMove(); break;
-        case State::Type::PAPER_PULL:           return new PaperPull(); break;
-
-        //case State::Type::PAPER_OUT:      return new PaperOut(); break;
-
-        case State::Type::GUILLOTINE_FORWARD:      return new GuillotineForward(); break;
 
         case State::Type::ERROR:              return new Error(); break;
 

@@ -28,7 +28,7 @@ public:
         plan.beginPlan(this->type());
 
         // Подготовка листа и подъем стола выполняются один раз до цикла автоподбора.
-        plan.add(State::Type::TABLE_UP);
+        // Removed State/Main state call: TABLE_UP.
 
         // Добавляем первую итерацию цикла автоподбора.
         LoopPlan();
@@ -74,15 +74,15 @@ private:
         // 3) Реверсом уводим новый край за датчик.
         // 4) Снова находим новый край, ищем метку и измеряем фактическое смещение реза.
         // 5) Корректируем DELTA_mm и, при необходимости, добавляем еще одну итерацию цикла.
-        plan.add(State::Type::DETECT_MARK, Catalog::WorkParam().Dir(Catalog::DIR::Backward));
-        plan.add(State::Type::DETECT_PAPER);
-        plan.add(State::Type::PAPER_MOVE, feedToCut());
-        plan.add(State::Type::GUILLOTINE_FORWARD);
-        plan.add(State::Type::DETECT_MARK, Catalog::WorkParam().Dir(Catalog::DIR::Backward));
-        plan.add(State::Type::DETECT_PAPER);
+        // Removed State/Main state call: DETECT_MARK.
+        // Removed State/Main state call: DETECT_PAPER.
+        // Removed State/Main state call: PAPER_MOVE.
+        // Removed State/Main state call: GUILLOTINE_FORWARD.
+        // Removed State/Main state call: DETECT_MARK.
+        // Removed State/Main state call: DETECT_PAPER.
         plan.addAction(State::Type::ACTION, &autoOffset::SaveAfterCut, "SaveAfterCut");
-        plan.add(State::Type::DETECT_MARK);
-        plan.add(State::Type::DETECT_PAPER);
+        // Removed State/Main state call: DETECT_MARK.
+        // Removed State/Main state call: DETECT_PAPER.
         plan.addAction(State::Type::ACTION, &autoOffset::Calculate, "Calculate");
     }
     // Параметры шага PAPER_MOVE для подачи в расчетную линию реза.

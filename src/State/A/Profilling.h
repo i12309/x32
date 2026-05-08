@@ -14,15 +14,15 @@ public:
         if (plan.isActive()) return; // план уже инициализирован, не трогаем
 
         plan.beginPlan(this->type());
-        plan.add(State::Type::TABLE_UP);
-        plan.add(State::Type::DETECT_PAPER);
+        // Removed State/Main state call: TABLE_UP.
+        // Removed State/Main state call: DETECT_PAPER.
         plan.addAction(State::Type::ACTION, &Profilling::FeedFirst, "FeedFirst");
-        plan.add(State::Type::GUILLOTINE_FORWARD);
+        // Removed State/Main state call: GUILLOTINE_FORWARD.
 
         // добавляем в план нужное кол-ва нам шагов
         for (int i = 0; i < Data::tuning.PROFILE_COUNT_CUT + 1; ++i) {
             plan.addAction(State::Type::ACTION, &Profilling::FeedNext, "FeedNext");
-            plan.add(State::Type::GUILLOTINE_FORWARD);
+            // Removed State/Main state call: GUILLOTINE_FORWARD.
         }
 
         plan.addAction(State::Type::ACTION, &Profilling::FeedOut, "FeedOut");

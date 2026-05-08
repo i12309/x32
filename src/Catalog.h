@@ -48,16 +48,6 @@ public:
         BOOT,
         PRESSURE,// Сервисное для измерений давления
 
-        TABLE_UP,
-        TABLE_DOWN,
-        DETECT_PAPER,
-        DETECT_MARK,
-        GUILLOTINE_FORWARD,
-        GUILLOTINE_BACKWARD,
-        PAPER_MOVE,
-        PAPER_PULL,
-        //PAPER_OUT,
-
         // Станок
         PROCESS,
         CHECK,
@@ -76,16 +66,6 @@ public:
             case State::FRAME:             return "FRAME";
             case State::DONE:                return "DONE";
             case State::ACTION:              return "ACTION";
-
-            case State::TABLE_UP:          return "TABLE_UP";
-            case State::TABLE_DOWN:        return "TABLE_DOWN";
-            case State::DETECT_PAPER:      return "DETECT_PAPER";
-            case State::DETECT_MARK:       return "DETECT_MARK";
-            case State::GUILLOTINE_FORWARD:return "GUILLOTINE_FORWARD";
-            case State::GUILLOTINE_BACKWARD:return "GUILLOTINE_BACKWARD";
-            case State::PAPER_MOVE:        return "PAPER_MOVE";
-            case State::PAPER_PULL:        return "PAPER_PULL";
-            //case State::PAPER_OUT:          return "PAPER_OUT";   
 
             case State::BOOT:              return "BOOT";
             case State::PRESSURE:             return "PRESSURE";

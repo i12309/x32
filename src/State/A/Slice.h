@@ -43,23 +43,23 @@ public:
 
         plan.beginPlan(this->type());
 
-        //plan.add(State::Type::PAPER_MOVE,Catalog::WorkParam().Step(10000));
+        // Removed State/Main state call: PAPER_MOVE.
 
         for (int i = 0; i < requestedSheets(); ++i) {
-            plan.add(State::Type::TABLE_UP);
+            // Removed State/Main state call: TABLE_UP.
             addFrontEdgePlan(plan);
             plan.addAction(State::Type::ACTION, &Slice::Edge, "Edge");
 
             addBackEdgePlan(plan);
             plan.addAction(State::Type::ACTION, &Slice::Calculate, "Calculate");
             // выброс.. долго ижем край и толкаем остаток 
-            plan.add(State::Type::DETECT_MARK, Catalog::WorkParam().Timeout("PAPER_SEARCH").Optical(Catalog::OpticalSensor::EDGE));
-            plan.add(State::Type::PAPER_MOVE,Catalog::WorkParam().Step(300));
+            // Removed State/Main state call: DETECT_MARK.
+            // Removed State/Main state call: PAPER_MOVE.
         }
 
         // выброс.. долго ижем край и толкаем остаток 
-        plan.add(State::Type::DETECT_MARK, Catalog::WorkParam().Timeout("PAPER_SEARCH").Optical(Catalog::OpticalSensor::EDGE));
-        plan.add(State::Type::PAPER_MOVE,Catalog::WorkParam().Step(10000));
+        // Removed State/Main state call: DETECT_MARK.
+        // Removed State/Main state call: PAPER_MOVE.
 
         plan.printPlan();
 
@@ -90,11 +90,13 @@ public:
 private:
 
     static void addFrontEdgePlan(PlanManager& plan) {
-        plan.add(State::Type::DETECT_PAPER, Catalog::WorkParam().Timeout("PAPER_SEARCH"));
+        (void)plan;
+        // Removed State/Main state call: DETECT_PAPER.
     }
 
     static void addBackEdgePlan(PlanManager& plan) {
-        plan.add(State::Type::DETECT_MARK, Catalog::WorkParam().Timeout("PAPER_SEARCH").Optical(Catalog::OpticalSensor::EDGE));
+        (void)plan;
+        // Removed State/Main state call: DETECT_MARK.
     }
 
     static bool Edge() {
