@@ -11,7 +11,7 @@ enum ProcessType {
     ENCODER,
     OPTICAL,
     BUTTON,
-    MOTOR_TIMEOUT  // Периодический вызов callback пока мотор запущен — для контроля таймаута через Scene
+    MOTOR_TIMEOUT  // Периодический вызов callback пока мотор запущен.
 };
 
 // Структура для хранения информации о триггере
@@ -209,7 +209,7 @@ public:
     }
 
     // Обработчик таймаута мотора: вызывает callback каждый цикл process() пока триггер активен.
-    // Не управляет остановкой напрямую — это делает callback (например Scene::tableStop(NotStop)).
+    // Не управляет остановкой напрямую — это делает callback.
     void processMotorTimeout(TriggerAction& trigger) {
         IStepper* motor = registry->getMotor(trigger.motorName.c_str());
         if (!motor) return;
@@ -225,7 +225,7 @@ public:
 
     // Регистрация триггера периодической проверки таймаута мотора.
     // Триггер активен всегда (isActive = true), но callback вызывается только если мотор запущен.
-    // Вся логика таймаута живёт в Scene::Timeout — здесь лишь обеспечивается периодический опрос.
+    // Здесь обеспечивается периодический опрос таймаута.
     void registerMotorTimeoutTrigger(const std::string& triggerName,
                         const std::string& motorName,
                         std::function<void()> callback

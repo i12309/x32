@@ -64,7 +64,7 @@ private:
 
         // перед последним продуктовым резом листа поднять стол  
         if (Data::param.productCutsCount == Data::work.TOTAL_CUTS - 1 && Data::param.cyclesCount < Data::work.TOTAL_CYCLES){
-            App::scene().tableUp(Catalog::SPEED::Normal);
+            // Removed Scene method call: tableUp(Catalog::SPEED::Normal).
         }
         
         Data::param.cutsCount++; // прибавляем рез

@@ -22,7 +22,7 @@ public:
         if (plan.isActive()) return;
 
         // для сброса и мягкой подготовки с ледующему циклу - TODO подумать над тем что бы сделать отдельный метод 
-        App::scene().paperStop(Catalog::StopMode::ForceStop);
+        // Removed Scene method call: paperStop(Catalog::StopMode::ForceStop).
 
         measuredCount() = 0;
         totalLengthMm() = 0.0f;
@@ -68,14 +68,14 @@ public:
 
     State* run() override {
         if (failedFlag()) {
-            App::scene().paperStop(Catalog::StopMode::ForceStop);
-            App::scene().tableDown(Catalog::SPEED::Normal);
+            // Removed Scene method call: paperStop(Catalog::StopMode::ForceStop).
+            // Removed Scene method call: tableDown(Catalog::SPEED::Normal).
             return Factory(App::diag().add(State::ErrorCode::PAPER_NOT_FOUND, "Ошибка разделения листов", failedText()));
         }
 
         PlanManager& plan = App::plan();
         if (!plan.hasPending()) {
-            App::scene().paperStop(Catalog::StopMode::NotStop);
+            // Removed Scene method call: paperStop(Catalog::StopMode::NotStop).
             if (Page::activePage == &pWAIT::getInstance() && Page::previousPage != nullptr) pWAIT::getInstance().back();
             else pSlice::getInstance().show();
 
@@ -120,8 +120,8 @@ private:
     }
 
     static bool FinishMechanics() {
-        App::scene().tableDown(Catalog::SPEED::Normal);
-        App::scene().paperMove(6000, Catalog::DIR::Forward, Catalog::SPEED::Normal);
+        // Removed Scene method call: tableDown(Catalog::SPEED::Normal).
+        // Removed Scene method call: paperMove(6000, Catalog::DIR::Forward, Catalog::SPEED::Normal).
         return true;
     }
 

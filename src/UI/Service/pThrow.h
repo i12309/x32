@@ -87,18 +87,17 @@ class pThrow: public Page {
 
   // Запуск направления с учетом выбранных переключателей.
   void startWork(Catalog::DIR direction) {
-      if (usePaperScenario()) {
-          App::scene().paperWork(direction, Catalog::SPEED::Slow, true, clutch_switch);
-      } else {
-          App::scene().throwWork(direction, Catalog::SPEED::Slow);
-      }
+      (void)direction;
+      // Removed Scene method call: paperWork(direction, Catalog::SPEED::Slow, true, clutch_switch).
+      // Removed Scene method call: throwWork(direction, Catalog::SPEED::Slow).
   }
 
   // Остановка того сценария, который выбран на форме.
   void stopWork(Catalog::StopMode mode) {
-      // Если PAPER уже запущен, останавливаем связку PAPER+THROW независимо от текущего положения переключателя.
-      if (App::scene().isPaperRunning()) App::scene().paperStop(mode);
-      else App::scene().throwStop(mode);
+      (void)mode;
+      // Removed Scene method call: isPaperRunning().
+      // Removed Scene method call: paperStop(mode).
+      // Removed Scene method call: throwStop(mode).
   }
 
   void setClutchUi(bool enabled) {

@@ -8,7 +8,6 @@
 class Machine;
 class IMachineContext;
 class Registry;
-class Scene;
 class DeviceError;
 class State;
 class Page;
@@ -53,10 +52,6 @@ public:
             DeviceError* deviceError = nullptr;
         };
 
-        struct MotionContext {
-            Scene* scene = nullptr;
-        };
-
         struct UiContext {
             Page** activePage = nullptr;
             Page** previousPage = nullptr;
@@ -68,7 +63,6 @@ public:
         RuntimeContext runtime;
         PlanContext plan;
         DiagnosticsContext diagnostics;
-        MotionContext motion;
         UiContext ui;
     };
 
@@ -83,7 +77,6 @@ public:
     static Context::ConfigContext& cfg();
     static Machine& machine();
     static Registry& reg();
-    static Scene& scene();
     static DeviceError& diag();
     static State*& state();
     static Catalog::Mode& mode();

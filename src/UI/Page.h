@@ -4,7 +4,6 @@
 #include "App/App.h"
 #include "State/State.h"
 #include "Controller/Registry.h"
-#include "State/Scene.h"
 
 class Page {
 

@@ -10,7 +10,6 @@
 #include "Screen/Page/Page.h"
 #include "Screen/Panel/Panel.h"
 #include "State/PlanManager.h"
-#include "State/Scene.h"
 #include "State/State.h"
 #include "UI/Page.h"
 
@@ -41,7 +40,6 @@ App::Context buildAppContext() {
 
     ctx.plan.manager = &PlanManager::instance();
     ctx.diagnostics.deviceError = &DeviceError::getInstance();
-    ctx.motion.scene = &Scene::getInstance();
 
     ctx.ui.activePage = &Page::activePage;
     ctx.ui.previousPage = &Page::previousPage;
@@ -96,17 +94,6 @@ Registry& App::reg() {
     Registry* reg = ctx->machine.registry;
     if (reg != nullptr) return *reg;
     return Registry::getInstance();
-}
-
-Scene& App::scene() {
-    App::Context* ctx = App::tryContext();
-    if (ctx == nullptr) {
-        Log::E("[App] Context is not initialized. Aborting.");
-        abort();
-    }
-    Scene* scene = ctx->motion.scene;
-    if (scene != nullptr) return *scene;
-    return Scene::getInstance();
 }
 
 DeviceError& App::diag() {

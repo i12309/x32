@@ -11,7 +11,6 @@
 #include "Controller/Trigger.h"
 #include "Catalog.h"
 #include "Service/DeviceError.h"
-#include "State/Scene.h"
 
 class State {
 

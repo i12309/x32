@@ -9,7 +9,8 @@ void pTable::pop_bBack(void* ptr) {
 
 void pTable::pop_bUpTable(void* ptr){
     Log::D(__func__);
-    const auto result = App::scene().tableUp(Catalog::SPEED::Normal);
+    // Removed Scene method call: tableUp(Catalog::SPEED::Normal).
+    const auto result = Catalog::TableActionResult::NoMotor;
     if (result == Catalog::TableActionResult::AtLimit) {
         pINFO::showInfo("Предупреждение", "Стол достиг максимального хода");
         return;
@@ -18,7 +19,8 @@ void pTable::pop_bUpTable(void* ptr){
 
 void pTable::pop_bDownTable(void* ptr){
     Log::D(__func__);
-    const auto result = App::scene().tableDown(Catalog::SPEED::Normal);
+    // Removed Scene method call: tableDown(Catalog::SPEED::Normal).
+    const auto result = Catalog::TableActionResult::NoMotor;
     if (result == Catalog::TableActionResult::AtLimit) {
         pINFO::showInfo("Предупреждение", "Стол находится в нижней точке");
         return;
@@ -27,12 +29,13 @@ void pTable::pop_bDownTable(void* ptr){
 
 void pTable::pop_bStopTBL(void* ptr){
     Log::D(__func__);
-    App::scene().tableStop(Catalog::StopMode::ForceStop);
+    // Removed Scene method call: tableStop(Catalog::StopMode::ForceStop).
 }
 
 void pTable::push_bSlowUp(void* ptr) {
     Log::D(__func__);
-    const auto result = App::scene().tableUp(Catalog::SPEED::Slow);
+    // Removed Scene method call: tableUp(Catalog::SPEED::Slow).
+    const auto result = Catalog::TableActionResult::NoMotor;
     if (result == Catalog::TableActionResult::AtLimit) {
         pINFO::showInfo("Предупреждение", "Стол достиг максимального хода");
         return;
@@ -41,12 +44,13 @@ void pTable::push_bSlowUp(void* ptr) {
 
 void pTable::pop_bSlowUp(void* ptr) {
     Log::D(__func__);
-    App::scene().tableStop(Catalog::StopMode::ForceStop);
+    // Removed Scene method call: tableStop(Catalog::StopMode::ForceStop).
 }
 
 void pTable::push_bSlowDown(void* ptr) {
     Log::D(__func__);
-    const auto result = App::scene().tableDown(Catalog::SPEED::Slow);
+    // Removed Scene method call: tableDown(Catalog::SPEED::Slow).
+    const auto result = Catalog::TableActionResult::NoMotor;
     if (result == Catalog::TableActionResult::AtLimit) {
         pINFO::showInfo("Предупреждение", "Стол находится в нижней точке");
         return;
@@ -55,6 +59,6 @@ void pTable::push_bSlowDown(void* ptr) {
 
 void pTable::pop_bSlowDown(void* ptr) {
     Log::D(__func__);
-    App::scene().tableStop(Catalog::StopMode::ForceStop);
+    // Removed Scene method call: tableStop(Catalog::StopMode::ForceStop).
 }
 

@@ -1,6 +1,6 @@
 #include "IOptical.h"
 #include "App/App.h"
-#include "State/Scene.h"
+#include "Controller/IEncoder.h"
 
 void IRAM_ATTR IOptical::sensor_isr(void* arg) {
     auto* self = static_cast<IOptical*>(arg);
@@ -58,12 +58,12 @@ void IOptical::taskTrigger(void* pvParameters) {
         // Режим совместимости:
         // offsetSteps == 0 -> старое поведение (мгновенная force-остановка).
         if (self->offsetSteps == 0) {
-            Scene::getInstance().paperStop(Catalog::StopMode::ForceStop);
+            // Removed Scene method call: paperStop(Catalog::StopMode::ForceStop).
         } else {
             // Новый режим:
-            // по событию датчика не "рубим" мотор сразу, а даем Scene перенацелить движение
+            // Removed motion retargeting after optical trigger.
             // на точную позицию edgePos + offsetSteps.
-            Scene::getInstance().paperStopOffset(self->offsetSteps);
+            // Removed Scene method call: paperStopOffset(self->offsetSteps).
         }
 
     }

@@ -43,7 +43,7 @@ private:
 
     Catalog::MachineType type_ = Catalog::MachineType::UNKNOWN;
     MachineSpec spec_ = MachineSpec::get(Catalog::MachineType::UNKNOWN);
-    // Стабильный runtime-контекст, который получают долгоживущие ссылки (Page/State/Scene).
+    // Стабильный runtime-контекст, который получают долгоживущие ссылки (Page/State).
     IMachineContext runtimeContext_;
     bool contextBound_ = false;
 
