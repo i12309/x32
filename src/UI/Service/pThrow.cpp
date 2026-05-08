@@ -22,7 +22,6 @@ void pThrow::pop_bClutch(void* ptr)
 {
     Log::D(__func__);
     pThrow& UI = pThrow::getInstance();
-    if (App::ctx().swCatch == nullptr) return;
 
     UI.clutch_switch = !UI.clutch_switch;
     UI.setClutchUi(UI.clutch_switch);
@@ -32,11 +31,8 @@ void pThrow::pop_bPaper(void* ptr)
 {
     Log::D(__func__);
     pThrow& UI = pThrow::getInstance();
-    if (App::ctx().mPaper == nullptr || App::ctx().swPaper == nullptr) return;
 
     UI.paper_switch = !UI.paper_switch;
-    if (UI.paper_switch) App::ctx().swPaper->on();
-    else App::ctx().swPaper->off();
     UI.setPaperUi(UI.paper_switch);
 }
 

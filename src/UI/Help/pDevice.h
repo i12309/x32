@@ -15,7 +15,6 @@ class pDevice: public Page {
       // Button
       NexButton bBack   = NexButton(15, 2, "bBack");
       NexButton bParams    = NexButton(15, 3, "bParams");
-      NexButton bPinTest  = NexButton(15, 4, "bPinTest");
       NexButton bPressure      = NexButton(15, 5, "bPressure");
       NexButton b5      = NexButton(15, 6, "b5");
       NexButton b6 = NexButton(15, 7, "b6");
@@ -23,23 +22,21 @@ class pDevice: public Page {
       //#####################################################################
 
     private:
-      NexTouch *nexT[8];
+      NexTouch *nexT[7];
 
       //#####################################################################
 
       pDevice() : Page(15, 0, "p4_Device") {
           nexT[0] = &bBack;
           nexT[1] = &bParams;
-          nexT[2] = &bPinTest;
-          nexT[3] = &bPressure;
-          nexT[4] = &b5;
-          nexT[5] = &b6;
-          nexT[6] = &bNULL;
-          nexT[7] = NULL;
+          nexT[2] = &bPressure;
+          nexT[3] = &b5;
+          nexT[4] = &b6;
+          nexT[5] = &bNULL;
+          nexT[6] = NULL;
 
           bBack.attachPop(pop_bBack, &bBack);
           bParams.attachPop(pop_bParams, &bParams);
-          bPinTest.attachPop(pop_bPinTest, &bPinTest);
           bNULL.attachPop(pop_bNULL, &bNULL);
           // bPressure.attachPop(pop_bPressure, &bPressure);
           b5.attachPop(pop_b5, &b5);
@@ -50,7 +47,6 @@ class pDevice: public Page {
 
       static void pop_bBack(void* ptr);
       static void pop_bParams(void* ptr);
-      static void pop_bPinTest(void* ptr);
       static void pop_bNULL(void* ptr);
       static void pop_bPressure(void* ptr);
       static void pop_b5(void* ptr);

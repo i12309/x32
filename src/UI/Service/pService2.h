@@ -3,7 +3,6 @@
 #include "Catalog.h"
 
 #include "../Page.h"
-#include "Controller/Registry.h"
 
 class pService2: public Page {
     public:
@@ -13,26 +12,9 @@ class pService2: public Page {
       void show() override {
         Page::show();
 
-        if (!(App::ctx().swThrow != nullptr)) {
-          tThrow.setText("");
-          tThrow.Set_background_color_bco(Catalog::Color::grey);
-          //bThrow.Set_background_image_pic(-1);
-          bThrow.detachPop();
-        } else bThrow.attachPop(pop_bThrow, &bThrow);
-
-        if (!((App::ctx().mBigelUp != nullptr) || (App::ctx().mBigelDown != nullptr))) {
-          tBig.Set_background_color_bco(Catalog::Color::mediumGrey);
-          bBig.setText("");
-          //bBig.Set_background_image_pic(-1);
-          bBig.detachPop();
-        } else bBig.attachPop(pop_bBig, &bBig);
-
-        if (!(App::ctx().mKnife1 != nullptr)) {
-          tKnife.Set_background_color_bco(Catalog::Color::lightGrey);
-          bKnife.setText("");
-          //bKnife.Set_background_image_pic(-1);
-          bKnife.detachPop();
-        } else bKnife.attachPop(pop_bKnife, &bKnife);
+        tThrow.Set_background_color_bco(Catalog::Color::grey);
+        tBig.Set_background_color_bco(Catalog::Color::mediumGrey);
+        tKnife.Set_background_color_bco(Catalog::Color::lightGrey);
       };
     
     private:

@@ -7,6 +7,7 @@
 #include "pSlice.h"
 #include "pCalibration.h"
 #include "UI/Task/pTaskRun.h"
+#include "Service/Stats.h"
 
   void pService::pop_bBack(void* ptr) {
     Log::D(__func__);

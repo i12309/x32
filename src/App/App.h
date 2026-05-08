@@ -6,8 +6,6 @@
 #include "Catalog.h"
 
 class Machine;
-class IMachineContext;
-class Registry;
 class DeviceError;
 class State;
 class Page;
@@ -33,10 +31,8 @@ public:
             JsonDocument* dataDoc = nullptr;
         };
 
-        struct MachineContext {
+        struct MachineRuntime {
             Machine* machine = nullptr;
-            IMachineContext* devices = nullptr;
-            Registry* registry = nullptr;
         };
 
         struct RuntimeContext {
@@ -59,7 +55,7 @@ public:
 
         ConfigContext config;
         StorageContext storage;
-        MachineContext machine;
+        MachineRuntime machine;
         RuntimeContext runtime;
         PlanContext plan;
         DiagnosticsContext diagnostics;
@@ -73,10 +69,8 @@ public:
     static Context* tryContext() {
         return instance_ ? &instance_->context_ : nullptr;
     }
-    static IMachineContext& ctx();
     static Context::ConfigContext& cfg();
     static Machine& machine();
-    static Registry& reg();
     static DeviceError& diag();
     static State*& state();
     static Catalog::Mode& mode();

@@ -37,7 +37,7 @@ void Service::onPrepare() {
 void Service::onShow() {
     Data::work.clear();
     if (App::state() != nullptr) App::state()->setFactory(State::Type::SERVICE);
-    Ui::setHidden(objects.next_2, App::ctx().swThrow == nullptr);
+    Ui::setHidden(objects.next_2, false);
 }
 
 void Service::popBack(lv_event_t* e) {

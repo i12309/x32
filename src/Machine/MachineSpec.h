@@ -6,8 +6,6 @@
 
 #include "Catalog.h"
 
-class Registry;
-
 // Каркас спецификации станка.
 // Задача класса: хранить эталонный состав device для конкретного MachineType,
 // уметь валидировать конфиг и проверять факт создания объектов после загрузки.
@@ -43,9 +41,6 @@ public:
     // Проверка структуры и обязательных элементов внутри device из config.json.
     // Проверяем именно наличие секций/элементов. Глубокую валидацию атрибутов добавим следующим шагом.
     Report validateDeviceConfig(JsonObjectConst device) const;
-
-    // Проверка того, что объекты действительно созданы после инициализации в Registry.
-    Report validateRegistry(const Registry& registry) const;
 
 private:
     Catalog::MachineType type_ = Catalog::MachineType::UNKNOWN;

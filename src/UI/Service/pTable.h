@@ -3,7 +3,6 @@
 #include "Catalog.h"
 
 #include "../Page.h"
-#include "Controller/Registry.h"
 
 class pTable: public Page {
   public:
@@ -15,8 +14,8 @@ class pTable: public Page {
       }      
     };
     void show() override { Page::show();
-      const bool downActive = (App::ctx().sTableDown != nullptr) ? App::ctx().sTableDown->check(HIGH) : false;
-      const bool upActive = (App::ctx().sTableUp != nullptr) ? App::ctx().sTableUp->check(HIGH) : false;
+      const bool downActive = false;
+      const bool upActive = false;
       setSensorUi(cCheckDown, downActive);
       setSensorUi(cCheckUp, upActive);
     };
@@ -79,8 +78,8 @@ class pTable: public Page {
     void n_Service() {
       static bool downSensor = false;
       static bool upSensor = false;
-      const bool downActive = (App::ctx().sTableDown != nullptr) ? App::ctx().sTableDown->check(HIGH) : false;
-      const bool upActive = (App::ctx().sTableUp != nullptr) ? App::ctx().sTableUp->check(HIGH) : false;
+      const bool downActive = false;
+      const bool upActive = false;
 
       if (downActive != downSensor) {
         setSensorUi(cCheckDown, downActive);

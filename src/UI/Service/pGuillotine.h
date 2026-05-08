@@ -3,7 +3,6 @@
 #include "Catalog.h"
 
 #include "UI/Page.h"
-#include "Controller/Registry.h"
 
 class pGuillotine: public Page {
     public:
@@ -17,9 +16,9 @@ class pGuillotine: public Page {
       };
 
       void show() override { Page::show();
-        setShowThrowUi(App::ctx().swThrow != nullptr);
-        if (App::ctx().sGuillotine->check(HIGH)) { green(cCheck); } else { red(cCheck); }
-        if (App::ctx().sThrow != nullptr && App::ctx().sThrow->check(HIGH)) { green(cCheckThrow); } else { red(cCheckThrow); }
+        setShowThrowUi(false);
+        red(cCheck);
+        red(cCheckThrow);
       };
 
     private:
@@ -124,8 +123,8 @@ class pGuillotine: public Page {
       static bool sensor2 = false;
       // Считываем каждый датчик один раз за цикл интерфейса,
       // чтобы не дублировать polling одного и того же MCP-банка.
-      const bool guillotineActive = App::ctx().sGuillotine->check(HIGH);
-      const bool throwActive = (App::ctx().sThrow != nullptr) ? App::ctx().sThrow->check(HIGH) : false;
+      const bool guillotineActive = false;
+      const bool throwActive = false;
 
       if (guillotineActive && sensor1 == false) {
         green(cCheck);
@@ -137,7 +136,7 @@ class pGuillotine: public Page {
         sensor1 = false;
       }
 
-      if (App::ctx().sThrow != nullptr) {
+      if (false) {
         if (throwActive && sensor2 == false) {
           green(cCheckThrow);
           sensor2 = true;

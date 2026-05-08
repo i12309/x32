@@ -3,7 +3,6 @@
 #include "Catalog.h"
 
 #include "../Page.h"
-#include "Controller/Registry.h"
 
 class pPaper: public Page {
     public:
@@ -18,14 +17,9 @@ class pPaper: public Page {
     
       void show() override { Page::show();
         // При открытии формы всегда синхронизируем переключатель с фактическим состоянием муфты.
-        if (App::ctx().swCatch != nullptr) {
-          App::ctx().swCatch->off();
-          clutch_switch = App::ctx().swCatch->power;
-        } else {
-          clutch_switch = false;
-        }
+        clutch_switch = false;
         setClutchUi(clutch_switch);
-        setShowThrowUi(App::ctx().swThrow != nullptr);
+        setShowThrowUi(false);
         tValue.setText("0");
         tEncoder.setText(String(readPaperFeedback()).c_str());
         setDirUi();
@@ -150,8 +144,8 @@ class pPaper: public Page {
   }
 
   void updateOpticalStateUi(bool force = false) {
-      bool markWhite = (App::ctx().oMark != nullptr) ? App::ctx().oMark->checkBlack() : false;
-      bool edgeWhite = (App::ctx().oEdge != nullptr) ? App::ctx().oEdge->checkBlack() : false;
+      bool markWhite = false;
+      bool edgeWhite = false;
 
       if (force || !opticalStateInit || markWhite != lastMarkWhite) {
           setSensorUi(cCheckMark, markWhite);
@@ -190,7 +184,7 @@ class pPaper: public Page {
     if (hasMotor) {
         bThrow.setText("   Выброс");
         Page::setVisible(rThrow, true);
-        throw_switch = App::ctx().swThrow->power;
+        throw_switch = false;
     } else {
         bThrow.setText("");
         Page::setVisible(rThrow, false);
@@ -263,22 +257,10 @@ class pPaper: public Page {
 
   // Обновляет значение энкодера и индикатор лимита с кешированием
   void updateEncoderUi() {
-      IEncoder* encoder = App::ctx().eCatch;
-      if (!encoder) return;
-
-      // Проверяем выход за порог и меняем цвет только при изменении.
-          setEncoderLimitUi((encoder->getCount() > encoder->getThreshold()));
+      setEncoderLimitUi(false);
   }
 
   int64_t readPaperFeedback() const {
-      if (App::ctx().ePaper != nullptr) {
-        //Log::D(" --- ENCODER ");
-        return App::ctx().ePaper->getCount();
-      }
-      if (App::ctx().mPaper != nullptr) {
-        //Log::D(" --- MOTOR ");
-        return App::ctx().mPaper->getCurrentPosition();
-      }
       return 0;
   }
    

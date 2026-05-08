@@ -57,7 +57,6 @@ void pGuillotine::pop_bStopGLT(void *ptr)
 void pGuillotine::pop_bThrow(void* ptr) {
     Log::D(__func__);
     pGuillotine& UI = pGuillotine::getInstance();
-    if (App::ctx().swThrow == nullptr) return;
 
     UI.throw_switch = !UI.throw_switch;
     UI.setThrowUi();

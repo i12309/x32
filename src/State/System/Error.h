@@ -17,8 +17,6 @@ public:
 
         // При ошибке останавливаем все моторы!
         Remote::CanMachine::instance().stopAll();
-        App::ctx().reg.emergencyMotor();
-        App::ctx().reg.emergencyClutch();
     }
 
     State* run() override {return this;}

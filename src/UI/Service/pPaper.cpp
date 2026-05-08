@@ -48,7 +48,7 @@ void pPaper::push_bPForward(void* ptr) {
     Log::D(__func__);
     pPaper& UI = pPaper::getInstance();
     int v = UI.normalizeStepValueUi();
-    const bool useEncoderCorrection = (App::ctx().mPaper != nullptr) && App::ctx().mPaper->useEncoderCorrection();
+    const bool useEncoderCorrection = false;
     (void)v;
     (void)useEncoderCorrection;
     // Removed Scene method call: paperWork(Catalog::DIR::Forward, Catalog::SPEED::Slow, UI.throw_switch, UI.clutch_switch).
@@ -66,7 +66,7 @@ void pPaper::push_bPBack(void* ptr) {
     Log::D(__func__);
     pPaper& UI = pPaper::getInstance();
     int v = UI.normalizeStepValueUi();
-    const bool useEncoderCorrection = (App::ctx().mPaper != nullptr) && App::ctx().mPaper->useEncoderCorrection();
+    const bool useEncoderCorrection = false;
     (void)v;
     (void)useEncoderCorrection;
     // Removed Scene method call: paperWork(Catalog::DIR::Backward, Catalog::SPEED::Slow, UI.throw_switch, UI.clutch_switch).
@@ -116,12 +116,6 @@ void pPaper::pop_cCheck(void* ptr) {
 void pPaper::pop_tEncoder(void* ptr) {
     Log::D(__func__);
     pPaper& UI = pPaper::getInstance();
-    if (App::ctx().ePaper != nullptr) {
-        App::ctx().ePaper->clearCount();
-    }
-    if (App::ctx().mPaper != nullptr) {
-        App::ctx().mPaper->setCurrentPosition(0);
-    }
     String text = String(UI.readPaperFeedback());
     UI.tEncoder.setText(text.c_str());
 }

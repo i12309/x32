@@ -2,9 +2,7 @@
 #include <Arduino.h>
 #include "pHelp.h"
 #include "UI/Main/pINPUT.h"
-#include "PinTest.h"
 #include "pParams.h"
-#include "Service/PinTester.h"
 #include "UI/Main/pINFO.h"
 #include "Service/WiFiConfig.h"
 #include "Service/Stats.h"
@@ -18,12 +16,6 @@ void pDevice::pop_bBack(void* ptr) {
 void pDevice::pop_bParams(void* ptr){
   Log::D(__func__);
   pParams::getInstance().show();
-}
-
-void pDevice::pop_bPinTest(void* ptr){
-  Log::D(__func__);
-  PinTest::getInstance().show();
-  PinTester::initTestMode();
 }
 
 void pDevice::pop_bPressure(void* ptr){

@@ -15,9 +15,8 @@ Device& Device::instance() {
 void Device::show() {
     const PageMenu::MenuItem items[] = {
         {"Параметры", Device::popParams},
-        {"Тест пинов", Device::popPinTest},
     };
-    PageMenu::instance().showMenu("Устройство", items, 2, Device::popBack);
+    PageMenu::instance().showMenu("Устройство", items, 1, Device::popBack);
 }
 
 void Device::popBack(lv_event_t* e) {
@@ -29,11 +28,6 @@ void Device::popParams(lv_event_t* e) {
     (void)e;
     Info::showInfo("Параметры", String("Машина: ") + Core::config.machine,
                    String("Группа: ") + Core::config.group + " / " + Core::config.name);
-}
-
-void Device::popPinTest(lv_event_t* e) {
-    (void)e;
-    Info::showInfo("Тест пинов", "TODO(ui-lvgl)", "В EEZ нет отдельного LVGL screen для PinTest");
 }
 
 }  // namespace Screen

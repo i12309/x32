@@ -13,8 +13,6 @@ class pService: public Page {
       void show() override { Page::show();
         Data::work.clear();
         App::state()->setFactory(State::Type::SERVICE);
-
-        if (App::ctx().swThrow == nullptr) Page::setVisible(bNext, false);
       };
     
     private:

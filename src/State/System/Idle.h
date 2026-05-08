@@ -8,7 +8,6 @@ class Idle : public State {
     void oneRun() override {
         State::oneRun();
         Data::param.reset();
-        App::ctx().reg.reset(); 
         App::mode() = Mode::NORMAL;
         // Keep warnings until user acknowledges them in UI.
         App::diag().clearErrors();

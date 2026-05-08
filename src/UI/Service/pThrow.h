@@ -11,8 +11,8 @@ class pThrow: public Page {
       void loop() override { Page::loop(); nexLoop(nexT); };
       void show() override {
         Page::show();
-        paper_switch = App::ctx().swPaper->power;
-        clutch_switch = App::ctx().swCatch->power;
+        paper_switch = false;
+        clutch_switch = false;
         setClutchUi(clutch_switch);
         setPaperUi(paper_switch);
       };
@@ -79,10 +79,7 @@ class pThrow: public Page {
 
   // Возвращает true, когда на THROW нужно запускать сценарий PAPER+THROW.
   bool usePaperScenario() const {
-      return paper_switch &&
-             App::ctx().mPaper != nullptr &&
-             App::ctx().swCatch != nullptr &&
-             App::ctx().swPaper != nullptr;
+      return false;
   }
 
   // Запуск направления с учетом выбранных переключателей.

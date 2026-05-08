@@ -47,7 +47,6 @@ void TaskProcess::onTick() {
     renderState();
 
     if (App::state() == nullptr || App::state()->type() != State::Type::IDLE) return;
-    //IButton* start = App::ctx().reg.getButton("START");    if (start != nullptr && start->isTrigger()) popProcess(nullptr);
 }
 
 void TaskProcess::renderProgress() {

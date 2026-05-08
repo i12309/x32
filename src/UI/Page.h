@@ -3,7 +3,6 @@
 
 #include "App/App.h"
 #include "State/State.h"
-#include "Controller/Registry.h"
 
 class Page {
 
@@ -42,7 +41,8 @@ public:
 
     virtual void checkButton(String nameButton, T::THandlerPageFunction func){
         // проверяем нажата ли кнопка 
-        if (App::ctx().reg.getButton(nameButton)->isTrigger()) func(nullptr);
+        (void)nameButton;
+        (void)func;
     }
 
 public:

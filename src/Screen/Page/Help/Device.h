@@ -14,7 +14,6 @@ private:
 
     static void popBack(lv_event_t* e);
     static void popParams(lv_event_t* e);
-    static void popPinTest(lv_event_t* e);
 };
 
 }  // namespace Screen

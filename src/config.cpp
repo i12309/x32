@@ -30,8 +30,6 @@ void fillSettings(JsonObject settings, bool accessPoint) {
     settings["MAX_TASKS"] = 50;
     settings["log"] = 1;
     settings["metrics"] = 1;
-    // Отдельный таймаут для McpTrigger: позволяет переживать короткую занятость I2C без ложного отказа arm/read snapshot.
-    settings["MCP_TRIGGER_I2C_WAIT_MS"] = 150;
 }
 
 bool fillDevice(JsonObject device, Catalog::MachineType type) {

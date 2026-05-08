@@ -7,8 +7,6 @@
 #include "Data.h"
 #include "Machine/Machine.h"
 #include "State/PlanManager.h"
-#include "Controller/Registry.h"
-#include "Controller/Trigger.h"
 #include "Catalog.h"
 #include "Service/DeviceError.h"
 

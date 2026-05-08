@@ -44,7 +44,6 @@ public:
                    (static_cast<float>(micros() - Data::param.startTime) / 60000000.0));
             Stats::getInstance().jobFinish();
             Data::param.reset();
-            App::ctx().reg.reset();
             return Factory(State::Type::FINISH);
         }
 

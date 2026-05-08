@@ -424,7 +424,6 @@ private: struct Settings {
         int metrics;// 0 - статистика
 
 
-        int MCP_TRIGGER_I2C_WAIT_MS;// Таймаут ожидания I2C для arm/disarm/read snapshot в McpTrigger.
 
         String buildLevel(const String& fileName, int level) const {
             switch (level) {
@@ -479,7 +478,6 @@ private: struct Settings {
             settings.LICENCE_OFF = obj["licence_off"] | 1;
             settings.metrics = obj["metrics"] | 0;
             // Если параметр отсутствует, используем тот же дефолт, что и в config defaults.
-            settings.MCP_TRIGGER_I2C_WAIT_MS = obj["MCP_TRIGGER_I2C_WAIT_MS"] | 150;
 
             return true;
         }
@@ -504,7 +502,6 @@ private: struct Settings {
             obj["ALLOW_MISSING_HARDWARE"] = settings.ALLOW_MISSING_HARDWARE;
             obj["licence_off"] = settings.LICENCE_OFF;
             obj["metrics"] = settings.metrics;
-            obj["MCP_TRIGGER_I2C_WAIT_MS"] = settings.MCP_TRIGGER_I2C_WAIT_MS;
         }
     };
 public: static Settings settings;

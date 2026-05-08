@@ -1,68 +1,4 @@
 ﻿#include "Machine/MachineSpec.h"
-#include "Controller/Registry.h"
-
-namespace {
-
-using RegistryExistsFn = bool (*)(const Registry&, const String&);
-
-bool existsI2C(const Registry& registry, const String& name) {
-    return registry.getMCP(name) != nullptr;
-}
-
-bool existsMotor(const Registry& registry, const String& name) {
-    return registry.getMotor(name) != nullptr;
-}
-
-bool existsSensor(const Registry& registry, const String& name) {
-    return registry.getSensor(name) != nullptr;
-}
-
-bool existsOptical(const Registry& registry, const String& name) {
-    return registry.getOptical(name) != nullptr;
-}
-
-bool existsClutch(const Registry& registry, const String& name) {
-    return registry.getClutch(name) != nullptr;
-}
-
-bool existsSwitch(const Registry& registry, const String& name) {
-    return registry.getSwitch(name) != nullptr;
-}
-
-bool existsButton(const Registry& registry, const String& name) {
-    return registry.getButton(name) != nullptr;
-}
-
-bool existsEncoder(const Registry& registry, const String& name) {
-    return registry.getEncoder(name) != nullptr;
-}
-
-// Унифицированная проверка секции по данным Registry.
-// existsFn должен вернуть true, если объект с таким именем существует и валиден.
-void validateSectionRegistry(
-    const char* sectionName,
-    const Registry& registry,
-    RegistryExistsFn existsFn,
-    const std::vector<MachineSpec::Requirement>& required,
-    MachineSpec::Report& report
-) {
-    if (required.empty()) return;
-
-    for (const MachineSpec::Requirement& req : required) {
-        const bool exists = existsFn(registry, req.name);
-        if (exists) continue;
-
-        String msg = String("[MachineSpec] Не создан объект ") + sectionName + "." + req.name;
-        if (req.criticalForMotion) {
-            report.errors.push_back(msg);
-            report.allowMotion = false;
-        } else {
-            report.warnings.push_back(msg);
-        }
-    }
-}
-
-} // namespace
 
 MachineSpec MachineSpec::get(Catalog::MachineType type) {
     switch (type) {
@@ -129,27 +65,6 @@ MachineSpec::Report MachineSpec::validateDeviceConfig(JsonObjectConst device) co
         // движение разрешать рискованно.
         report.allowMotion = false;
     }
-
-    return report;
-}
-
-MachineSpec::Report MachineSpec::validateRegistry(const Registry& registry) const {
-    Report report;
-
-    if (type_ == Catalog::MachineType::UNKNOWN) {
-        report.errors.push_back("[MachineSpec] Неизвестный MachineType, проверка загруженных объектов невозможна.");
-        report.allowMotion = false;
-        return report;
-    }
-
-    validateSectionRegistry("I2C", registry, existsI2C, i2c_, report);
-    validateSectionRegistry("motors", registry, existsMotor, motors_, report);
-    validateSectionRegistry("sensors", registry, existsSensor, sensors_, report);
-    validateSectionRegistry("optical", registry, existsOptical, optical_, report);
-    validateSectionRegistry("clutchs", registry, existsClutch, clutchs_, report);
-    validateSectionRegistry("switchs", registry, existsSwitch, switchs_, report);
-    validateSectionRegistry("buttons", registry, existsButton, buttons_, report);
-    validateSectionRegistry("encoders", registry, existsEncoder, encoders_, report);
 
     return report;
 }

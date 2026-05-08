@@ -45,7 +45,6 @@ void TaskRun::onShow() {
 
 void TaskRun::onTick() {
     if (App::state() == nullptr || App::state()->type() != State::Type::IDLE) return;
-    //IButton* start = App::ctx().reg.getButton("START");    if (start != nullptr && start->isTrigger()) popStart(nullptr);
 }
 
 void TaskRun::popBack(lv_event_t* e) {

@@ -2,8 +2,6 @@
 
 #include "Core.h"
 #include "Machine/Machine.h"
-#include "Controller/Registry.h"
-#include "Controller/Trigger.h"
 #include "Service/DeviceError.h"
 #include "Service/Log.h"
 #include "Service/Service.h"
@@ -35,8 +33,6 @@ App::Context buildAppContext() {
 
     Machine& machine = Machine::getInstance();
     ctx.machine.machine = &machine;
-    ctx.machine.devices = &machine.context();
-    ctx.machine.registry = &Registry::getInstance();
 
     ctx.plan.manager = &PlanManager::instance();
     ctx.diagnostics.deviceError = &DeviceError::getInstance();
@@ -63,17 +59,6 @@ App::Context::ConfigContext& App::cfg() {
     return ctx->config;
 }
 
-IMachineContext& App::ctx() {
-    App::Context* ctx = App::tryContext();
-    if (ctx == nullptr) {
-        Log::E("[App] Context is not initialized. Aborting.");
-        abort();
-    }
-    IMachineContext* deviceContext = ctx->machine.devices;
-    if (deviceContext != nullptr) return *deviceContext;
-    return Machine::getInstance().context();
-}
-
 Machine& App::machine() {
     App::Context* ctx = App::tryContext();
     if (ctx == nullptr) {
@@ -83,17 +68,6 @@ Machine& App::machine() {
     Machine* m = ctx->machine.machine;
     if (m != nullptr) return *m;
     return Machine::getInstance();
-}
-
-Registry& App::reg() {
-    App::Context* ctx = App::tryContext();
-    if (ctx == nullptr) {
-        Log::E("[App] Context is not initialized. Aborting.");
-        abort();
-    }
-    Registry* reg = ctx->machine.registry;
-    if (reg != nullptr) return *reg;
-    return Registry::getInstance();
 }
 
 DeviceError& App::diag() {
@@ -142,13 +116,11 @@ void App::init() {
     Log::init();
     Panel::init();
     State::init();
-    Trigger::init();
 }
 
 void App::process() {
     Panel::process();
     State::process();
     Screen::Page::process();
-    if (App::ctx().mPaper != nullptr) App::ctx().mPaper->processPaperPulseTrace(); // STEPPER_PULSE_TRACE_TEMP
     Service::process();
 }

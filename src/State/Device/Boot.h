@@ -13,7 +13,6 @@
 #include "Screen/Page/Main/INIT.h"
 #include "Screen/Page/Main/Load.h"
 #include "State/State.h"
-#include "Controller/McpTrigger.h"
 #include "App/App.h"
 #include "Remote/CanMachine.h"
 
@@ -66,8 +65,6 @@ public:
         plan.addAction(State::Type::ACTION, &Boot::ConnectMQTT, "ConnectMQTT");
         plan.addAction(State::Type::ACTION, &Boot::LoadData, "LoadData");
         plan.addAction(State::Type::ACTION, &Boot::InitCAN, "InitCAN");
-        plan.addAction(State::Type::ACTION, &Boot::InitRegistry, "InitRegistry");
-        plan.addAction(State::Type::ACTION, &Boot::RegisterTriggers, "RegisterTriggers");
 
     }
 
@@ -88,7 +85,6 @@ public:
         if (!plan.hasPending()) {
             Log::L(" === END LOAD v.%s", Version::makeDeviceVersion(NexUpdate::getInstance().getCurrentVersion()).c_str());
             Data::param.reset();
-            App::ctx().reg.reset();
             App::mode() = Mode::NORMAL;
             App::diag().clearErrors();
             ESPUpdate::getInstance().markCurrentFirmwareValid(); // Boot completed; CHECK_SYSTEM validates hardware, not OTA viability.
@@ -248,69 +244,6 @@ private:
         Log::E(" === ERROR CAN Init: %s", Remote::CanMachine::instance().lastError().c_str());
         App::diag().addFatal(State::ErrorCode::CONFIG_ERROR, "CAN init failed", Remote::CanMachine::instance().lastError());
         requestAbort(State::Type::ERROR);
-        return true;
-    }
-
-    static bool InitRegistry() {
-        /*Log::D("BOOT: %s", "Инициализация устройств");
-        String registry_error_message;
-        if (!App::reg().init(&registry_error_message)) { // Инициализация устройства
-            Log::D("BOOT: %s", registry_error_message.c_str());
-            Log::E(" === ERROR Registry Init: %s", registry_error_message.c_str());
-            requestAbort(State::Type::NULL_STATE);
-            return true;
-        }
-
-        // А теперь проверяем подходит ли то что загрузили к этому типу машины 
-        Machine& machine = App::machine();
-        String machineError;
-        if (!machine.bindRegistry(App::reg(), &machineError)) {
-            Log::D("BOOT: %s", machineError.c_str());
-            Log::E(" === ERROR Machine Bind: %s", machineError.c_str());
-            requestAbort(State::Type::NULL_STATE);
-            return true;
-        }
-
-        MachineSpec::Report specReport = machine.validateRegistry(App::reg());
-        for (const String& warning : specReport.warnings) {
-            Log::D("%s", warning.c_str());
-            App::diag().addWarning(State::ErrorCode::CONFIG_ERROR, "Конфигурация устройства неверная", warning);
-        }
-        if (!machine.shouldContinueBoot(*App::cfg().allowMissingHardware == 1)) {
-            String failText = "Machine registry validation failed";
-            if (!specReport.errors.empty()) {
-                failText = specReport.errors.front();
-            }
-            Log::D("BOOT: %s", failText.c_str());
-            for (const String& err : specReport.errors) {
-                Log::E("%s", err.c_str());
-            }
-            requestAbort(State::Type::NULL_STATE);
-            return true;
-        }
-
-        if (specReport.hasErrors()) {
-            Log::E("[Machine] Registry validation has blocking errors, but ALLOW_MISSING_HARDWARE=1. Continue boot.");
-            for (const String& err : specReport.errors) {
-                Log::D("[Machine][warn-only] %s", err.c_str());
-                App::diag().addWarning(State::ErrorCode::CONFIG_ERROR, "Работа с ограничениями", err);
-            }
-        }
-        if (!machine.readyForMotion()) {
-            Log::D("[Machine] Motion is not ready after registry binding.");
-        }*/
-
-        // ----
-        Data::param.reset();
-        App::mode() = Mode::NORMAL;
-        App::diag().clearErrors();
-        return true;
-    }
-
-    static bool RegisterTriggers() {
-        /*Log::D("BOOT: %s", "Регистрация триггеров");
-        Trigger::getInstance().registerTrigger();
-        McpTrigger::getInstance().init();*/
         return true;
     }
 
