@@ -1,4 +1,7 @@
 #pragma once
+
+#include "Service/Stats.h"
+#include "State/A/CanActions.h"
 #include "State/State.h"
 #include "UI/Main/pWAIT.h"
 
@@ -10,13 +13,13 @@ public:
         State::oneRun();
 
         PlanManager& plan = App::plan();
-        if (plan.isActive()) return; // план уже инициализирован, не трогаем
+        if (plan.isActive()) return;
 
         Data::work.task.clear();
-        Data::work.task.ID=0;
-        Data::work.task.MARK = 1; // всегда с меткой
-        Data::work.task.OVER_mm=Data::tuning.OVER_mm; // вылет
-        Data::work.task.PRODUCT_mm=0;
+        Data::work.task.ID = 0;
+        Data::work.task.MARK = 1;
+        Data::work.task.OVER_mm = Data::tuning.OVER_mm;
+        Data::work.task.PRODUCT_mm = 0;
 
         Data::work.TOTAL_CYCLES = 1;
         Data::work.TOTAL_CUTS = Data::tuning.CUT_count * 2;
@@ -25,25 +28,22 @@ public:
         Data::work.print();
 
         plan.beginPlan(this->type());
-        if (Data::param.productCutsCount == 1) { // первый рез 
-            // Removed State/Main state call: TABLE_UP.
+        if (Data::param.productCutsCount == 1) {
+            plan.addAction(State::Type::ACTION, &CanActions::TableUp, "TableUp");
         }
 
-        //### РАБОЧИЙ ЦИКЛ 
-        // Removed State/Main state call: DETECT_PAPER.
-        // Removed State/Main state call: DETECT_MARK.
+        plan.addAction(State::Type::ACTION, &CanActions::DetectPaper, "DetectPaper");
+        plan.addAction(State::Type::ACTION, &CanActions::DetectMark, "DetectMark");
         plan.addAction(State::Type::ACTION, &Calibration::Feed, "Feed");
-        // Removed State/Main state call: GUILLOTINE_FORWARD.
+        plan.addAction(State::Type::ACTION, &CanActions::GuillotineCut, "CalibrationCut");
         plan.addAction(State::Type::ACTION, &Calibration::LoopCut, "LoopCut");
-        //######
 
-        // дальше немного отрезаем от листа что бы метка стала ближе к краю
-        plan.addAction(State::Type::ACTION, &Calibration::FeedForward, "FeedForward");// сначала двигаем вперед
-        // Removed State/Main state call: GUILLOTINE_FORWARD.
-        plan.addAction(State::Type::ACTION, &Calibration::FeedBackward, "FeedBackward");// потом отматываем назад на нужное расстояние, чтобы 10 мм до отптического датчика
+        plan.addAction(State::Type::ACTION, &Calibration::FeedForward, "FeedForward");
+        plan.addAction(State::Type::ACTION, &CanActions::GuillotineCut, "ForwardCut");
+        plan.addAction(State::Type::ACTION, &Calibration::FeedBackward, "FeedBackward");
 
-        if (Data::param.productCutsCount == Data::tuning.CUT_count) { // последний рез 
-            // Removed State/Main state call: PAPER_MOVE.
+        if (Data::param.productCutsCount == Data::tuning.CUT_count) {
+            plan.addAction(State::Type::ACTION, &CanActions::EjectTail, "EjectTail");
         }
 
         plan.printPlan();
@@ -60,41 +60,45 @@ public:
     }
 
 private:
-    static bool Feed() { Log::D(__func__);
-        float mm = 0.0f; 
-        // если это первый рез
-        if (Data::param.cutsCount == 0) mm = -15 + (Data::tuning.MARK_LENGHT_mm + Data::tuning.OVER_mm + Data::tuning.SENSOR_DISTANCE_mm + Data::tuning.DELTA_mm);
-        else mm = 15; // следующий рез 
-        Log::D("Расстояние: %f",mm);
-        App::ctx().mPaper->moveMM(mm, Data::work.profile.RATIO_mm,true);
-        return true;
+    static bool Feed() {
+        Log::D(__func__);
+        float mm = 0.0f;
+        if (Data::param.cutsCount == 0) {
+            mm = -15.0f + (Data::tuning.MARK_LENGHT_mm +
+                           Data::tuning.OVER_mm +
+                           Data::tuning.SENSOR_DISTANCE_mm +
+                           Data::tuning.DELTA_mm);
+        } else {
+            mm = 15.0f;
+        }
+        Log::D("Расстояние: %f", mm);
+        return CanActions::paperMoveMm(mm, true);
     }
 
-    static bool LoopCut() { Log::D(__func__);
+    static bool LoopCut() {
+        Log::D(__func__);
         Data::param.cutsCount++;
         Log::D("Рез: %d", Data::param.cutsCount);
         if (Data::param.cutsCount == 1) {
             PlanManager& plan = App::plan();
-            
             plan.resetByActionName("Feed");
-            // Removed State/Main state reset: GUILLOTINE_FORWARD.
+            plan.resetByActionName("CalibrationCut");
             plan.resetByActionName("LoopCut");
-            return true;
         }
         return true;
     }
 
-    static bool FeedForward() { Log::D(__func__);
-        float mm = Data::tuning.DISTANCE_BETWEEN_MARKS_mm - Data::tuning.OVER_mm - 9.0f;
-        Log::D("Расстояние: %f",mm);
-        App::ctx().mPaper->moveMM(mm, Data::work.profile.RATIO_mm, true); 
-        return true;
+    static bool FeedForward() {
+        Log::D(__func__);
+        const float mm = Data::tuning.DISTANCE_BETWEEN_MARKS_mm - Data::tuning.OVER_mm - 9.0f;
+        Log::D("Расстояние: %f", mm);
+        return CanActions::paperMoveMm(mm, true);
     }
 
-    static bool FeedBackward() { Log::D(__func__);
-        float mm = -1* (Data::tuning.SENSOR_DISTANCE_mm + 10.0f); 
-        Log::D("Расстояние: %f",mm);
-        App::ctx().mPaper->moveMM(mm, Data::work.profile.RATIO_mm, true); 
-        return true;
+    static bool FeedBackward() {
+        Log::D(__func__);
+        const float mm = -1.0f * (Data::tuning.SENSOR_DISTANCE_mm + 10.0f);
+        Log::D("Расстояние: %f", mm);
+        return CanActions::paperMoveMm(mm, true);
     }
 };

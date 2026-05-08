@@ -1,4 +1,7 @@
 #pragma once
+
+#include "Service/Stats.h"
+#include "State/A/CanActions.h"
 #include "State/State.h"
 #include "UI/Main/pINPUT.h"
 #include "UI/Profile/pProfile.h"
@@ -11,18 +14,17 @@ public:
         State::oneRun();
 
         PlanManager& plan = App::plan();
-        if (plan.isActive()) return; // план уже инициализирован, не трогаем
+        if (plan.isActive()) return;
 
         plan.beginPlan(this->type());
-        // Removed State/Main state call: TABLE_UP.
-        // Removed State/Main state call: DETECT_PAPER.
+        plan.addAction(State::Type::ACTION, &CanActions::TableUp, "TableUp");
+        plan.addAction(State::Type::ACTION, &CanActions::DetectPaper, "DetectPaper");
         plan.addAction(State::Type::ACTION, &Profilling::FeedFirst, "FeedFirst");
-        // Removed State/Main state call: GUILLOTINE_FORWARD.
+        plan.addAction(State::Type::ACTION, &CanActions::GuillotineCut, "FirstCut");
 
-        // добавляем в план нужное кол-ва нам шагов
         for (int i = 0; i < Data::tuning.PROFILE_COUNT_CUT + 1; ++i) {
             plan.addAction(State::Type::ACTION, &Profilling::FeedNext, "FeedNext");
-            // Removed State/Main state call: GUILLOTINE_FORWARD.
+            plan.addAction(State::Type::ACTION, &CanActions::GuillotineCut, "ProfileCut");
         }
 
         plan.addAction(State::Type::ACTION, &Profilling::FeedOut, "FeedOut");
@@ -32,7 +34,6 @@ public:
     State* run() override {
         PlanManager& plan = App::plan();
         if (!plan.hasPending()) {
-            // После завершения показать UI для ввода ширины
             ShowProfileInput();
             Stats::getInstance().save();
             return Factory(State::Type::FINISH);
@@ -41,28 +42,29 @@ public:
     }
 
 private:
-
-    static bool FeedFirst() { Log::D(__func__);
-        App::ctx().mPaper->setSpeed();
-        App::ctx().mPaper->moveMM(Data::tuning.SENSOR_DISTANCE_mm + Data::tuning.DELTA_mm,Data::work.profile.RATIO_mm,true);
-        return true;
+    static bool FeedFirst() {
+        Log::D(__func__);
+        return CanActions::paperMoveMm(Data::tuning.SENSOR_DISTANCE_mm + Data::tuning.DELTA_mm, true);
     }
 
-    static bool FeedNext() { Log::D(__func__);
-        App::ctx().mPaper->move(Data::tuning.PROFILE_WIDTH_step, true);
-        return true;
+    static bool FeedNext() {
+        Log::D(__func__);
+        if (Remote::CanMachine::instance().paperMoveSteps(Data::tuning.PROFILE_WIDTH_step, true)) return true;
+        App::diag().addFatal(State::ErrorCode::PAPER, "PROFILE paper move failed", Remote::CanMachine::instance().lastError());
+        return false;
     }
 
-    static bool FeedOut() { Log::D(__func__);
-        App::ctx().mPaper->move(10000);
-        return true;
+    static bool FeedOut() {
+        Log::D(__func__);
+        if (Remote::CanMachine::instance().paperMoveSteps(10000, false)) return true;
+        App::diag().addFatal(State::ErrorCode::PAPER, "PROFILE feed out failed", Remote::CanMachine::instance().lastError());
+        return false;
     }
 
     static void ShowProfileInput() {
-        // Код из GoProfile для показа UI
         pINPUT::showInput(
             "Измерение ширины",
-            "Померьте ширину полосок (до сотых)",
+            "Померяйте ширину полосок (до сотых)",
             "Внесите получившееся значение (в мм)",
             "0",
             [](const String& widthText) {
@@ -70,7 +72,7 @@ private:
                 trimmed.trim();
 
                 if (!T::isStringValidFloat(trimmed.c_str())) {
-                    Log::D("Ввели не правильное значение");
+                    Log::D("Ввели неправильное значение");
                     return;
                 }
 
@@ -92,7 +94,7 @@ private:
             []() {
                 pProfile::getInstance().show();
             },
-            2, // цифры
+            2,
             false);
     }
 };

@@ -2,10 +2,11 @@
 
 #include <cstdint>
 
+#include "Service/Stats.h"
+#include "State/A/CanActions.h"
 #include "State/State.h"
 #include "UI/Main/pWAIT.h"
 #include "UI/Service/pSlice.h"
-#include "Service/Stats.h"
 
 class Slice : public State {
 public:
@@ -20,9 +21,6 @@ public:
 
         PlanManager& plan = App::plan();
         if (plan.isActive()) return;
-
-        // для сброса и мягкой подготовки с ледующему циклу - TODO подумать над тем что бы сделать отдельный метод 
-        // Removed Scene method call: paperStop(Catalog::StopMode::ForceStop).
 
         measuredCount() = 0;
         totalLengthMm() = 0.0f;
@@ -42,42 +40,34 @@ public:
         updateWaitProgress(0);
 
         plan.beginPlan(this->type());
-
-        // Removed State/Main state call: PAPER_MOVE.
+        plan.addAction(State::Type::ACTION, &CanActions::PaperZeroPosition, "PaperZero");
 
         for (int i = 0; i < requestedSheets(); ++i) {
-            // Removed State/Main state call: TABLE_UP.
-            addFrontEdgePlan(plan);
+            plan.addAction(State::Type::ACTION, &CanActions::TableUp, "TableUp");
+            plan.addAction(State::Type::ACTION, &CanActions::DetectPaper, "DetectFrontEdge");
             plan.addAction(State::Type::ACTION, &Slice::Edge, "Edge");
-
-            addBackEdgePlan(plan);
+            plan.addAction(State::Type::ACTION, &CanActions::DetectMark, "DetectBackEdge");
             plan.addAction(State::Type::ACTION, &Slice::Calculate, "Calculate");
-            // выброс.. долго ижем край и толкаем остаток 
-            // Removed State/Main state call: DETECT_MARK.
-            // Removed State/Main state call: PAPER_MOVE.
+            plan.addAction(State::Type::ACTION, &CanActions::EjectTail, "EjectTail");
         }
 
-        // выброс.. долго ижем край и толкаем остаток 
-        // Removed State/Main state call: DETECT_MARK.
-        // Removed State/Main state call: PAPER_MOVE.
-
         plan.printPlan();
-
-        //App::ctx().cPaper->engage();
     }
 
     State* run() override {
         if (failedFlag()) {
-            // Removed Scene method call: paperStop(Catalog::StopMode::ForceStop).
-            // Removed Scene method call: tableDown(Catalog::SPEED::Normal).
-            return Factory(App::diag().add(State::ErrorCode::PAPER_NOT_FOUND, "Ошибка разделения листов", failedText()));
+            return Factory(App::diag().add(State::ErrorCode::PAPER_NOT_FOUND,
+                                           "Ошибка разделения листов",
+                                           failedText()));
         }
 
         PlanManager& plan = App::plan();
         if (!plan.hasPending()) {
-            // Removed Scene method call: paperStop(Catalog::StopMode::NotStop).
-            if (Page::activePage == &pWAIT::getInstance() && Page::previousPage != nullptr) pWAIT::getInstance().back();
-            else pSlice::getInstance().show();
+            if (Page::activePage == &pWAIT::getInstance() && Page::previousPage != nullptr) {
+                pWAIT::getInstance().back();
+            } else {
+                pSlice::getInstance().show();
+            }
 
             setSlicePageResult();
             Stats::getInstance().save();
@@ -88,24 +78,12 @@ public:
     }
 
 private:
-
-    static void addFrontEdgePlan(PlanManager& plan) {
-        (void)plan;
-        // Removed State/Main state call: DETECT_PAPER.
-    }
-
-    static void addBackEdgePlan(PlanManager& plan) {
-        (void)plan;
-        // Removed State/Main state call: DETECT_MARK.
-    }
-
     static bool Edge() {
-        App::ctx().mPaper->setCurrentPosition(0);
-        return true;
+        return CanActions::PaperZeroPosition();
     }
 
     static bool Calculate() {
-        Log::D("Data::param.markPosition = %d",Data::param.markPosition);
+        Log::D("Data::param.markPosition = %d", Data::param.markPosition);
         if (Data::param.markPosition <= 0) {
             fail(String("Некорректная длина листа в шагах: ") + String(Data::param.markPosition));
             return true;
@@ -115,13 +93,6 @@ private:
         measuredCount()++;
 
         updateWaitProgress(measuredCount());
-
-        return true;
-    }
-
-    static bool FinishMechanics() {
-        // Removed Scene method call: tableDown(Catalog::SPEED::Normal).
-        // Removed Scene method call: paperMove(6000, Catalog::DIR::Forward, Catalog::SPEED::Normal).
         return true;
     }
 
@@ -176,16 +147,6 @@ private:
         return value;
     }
 
-    static int32_t& refineBackoffSteps() {
-        static int32_t value = 1;
-        return value;
-    }
-
-    static bool& usePrecisionMode() {
-        static bool value = false;
-        return value;
-    }
-
     static bool& failedFlag() {
         static bool value = false;
         return value;
@@ -195,7 +156,4 @@ private:
         static String value = "";
         return value;
     }
-
-    static bool wait1() { delay(0); return true; }
-    static bool wait2() { delay(0); return true; }
 };

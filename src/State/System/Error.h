@@ -2,6 +2,7 @@
 #include "State/State.h"
 #include "UI/Main/pERROR.h"
 #include "Screen/Page/Main/Error.h"
+#include "Remote/CanMachine.h"
 
 class Error : public State {
 public:
@@ -15,6 +16,7 @@ public:
         //pERROR::getInstance().show();
 
         // При ошибке останавливаем все моторы!
+        Remote::CanMachine::instance().stopAll();
         App::ctx().reg.emergencyMotor();
         App::ctx().reg.emergencyClutch();
     }

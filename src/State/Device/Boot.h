@@ -15,6 +15,7 @@
 #include "State/State.h"
 #include "Controller/McpTrigger.h"
 #include "App/App.h"
+#include "Remote/CanMachine.h"
 
 class Boot : public State {
 private:
@@ -64,6 +65,7 @@ public:
         plan.addAction(State::Type::ACTION, &Boot::StartHttp, "StartHTTP");
         plan.addAction(State::Type::ACTION, &Boot::ConnectMQTT, "ConnectMQTT");
         plan.addAction(State::Type::ACTION, &Boot::LoadData, "LoadData");
+        plan.addAction(State::Type::ACTION, &Boot::InitCAN, "InitCAN");
         plan.addAction(State::Type::ACTION, &Boot::InitRegistry, "InitRegistry");
         plan.addAction(State::Type::ACTION, &Boot::RegisterTriggers, "RegisterTriggers");
 
@@ -237,6 +239,18 @@ private:
         Stats::getInstance().init();
         return true;
     }
+
+    static bool InitCAN() {
+        Log::D("BOOT: %s", "CAN init");
+        if (Remote::CanMachine::instance().begin()) {
+            return true;
+        }
+        Log::E(" === ERROR CAN Init: %s", Remote::CanMachine::instance().lastError().c_str());
+        App::diag().addFatal(State::ErrorCode::CONFIG_ERROR, "CAN init failed", Remote::CanMachine::instance().lastError());
+        requestAbort(State::Type::ERROR);
+        return true;
+    }
+
     static bool InitRegistry() {
         /*Log::D("BOOT: %s", "Инициализация устройств");
         String registry_error_message;

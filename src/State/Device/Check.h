@@ -1,5 +1,6 @@
 #pragma once
 #include "State/State.h"
+#include "State/A/CanActions.h"
 
 class A_CHECK : public State {
 public:
@@ -15,11 +16,9 @@ public:
         PlanManager& plan = App::plan();
         plan.beginPlan(this->type());
         if (! Core::settings.CHECK_SYSTEM) return;
-        //plan.add(State::Type::CHECK_PAPER);
-        //plan.add(State::Type::CHECK_GUILLOTINE);
-        //plan.add(State::Type::CHECK_TABLE);
+        plan.addAction(State::Type::ACTION, &CanActions::CheckAll, "CanCheckAll");
 
-        //plan.printPlan();
+        plan.printPlan();
     }
 
     State* run() override {
