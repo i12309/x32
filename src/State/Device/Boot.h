@@ -13,7 +13,7 @@
 #include "Screen/Page/Main/Load.h"
 #include "State/State.h"
 #include "App/App.h"
-#include "Remote/CanMachine.h"
+#include "Service/CAN.h"
 
 class Boot : public State {
 private:
@@ -237,11 +237,11 @@ private:
 
     static bool InitCAN() {
         Log::D("BOOT: %s", "CAN init");
-        if (Remote::CanMachine::instance().begin()) {
+        if (CAN::instance().begin()) {
             return true;
         }
-        Log::E(" === ERROR CAN Init: %s", Remote::CanMachine::instance().lastError().c_str());
-        App::diag().addFatal(State::ErrorCode::CONFIG_ERROR, "CAN init failed", Remote::CanMachine::instance().lastError());
+        Log::E(" === ERROR CAN Init: %s", CAN::instance().lastError().c_str());
+        App::diag().addFatal(State::ErrorCode::CONFIG_ERROR, "CAN init failed", CAN::instance().lastError());
         requestAbort(State::Type::ERROR);
         return true;
     }

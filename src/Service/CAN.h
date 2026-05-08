@@ -7,8 +7,6 @@
 #include "backends/esp32/Esp32TwaiBus.h"
 #include "protocols/scenario/Scenario.h"
 
-namespace Remote {
-
 #ifndef FRONT32_CAN_TX_PIN
 #define FRONT32_CAN_TX_PIN 27
 #endif
@@ -44,9 +42,9 @@ struct ScenarioResult {
     int32_t value = 0;
 };
 
-class CanMachine {
+class CAN {
 public:
-    static CanMachine& instance();
+    static CAN& instance();
 
     bool begin();
     bool isReady() const { return ready_; }
@@ -72,7 +70,7 @@ public:
     String lastError() const { return lastError_; }
 
 private:
-    CanMachine();
+    CAN();
 
     uint16_t speedOption(Catalog::SPEED speed) const;
     bool runScenario(uint16_t address,
@@ -99,5 +97,3 @@ private:
     bool ready_ = false;
     String lastError_;
 };
-
-} // namespace Remote

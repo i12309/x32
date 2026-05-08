@@ -1,10 +1,9 @@
-#include "Remote/CanMachine.h"
+#include "Service/CAN.h"
 
 #include <cmath>
 
 #include "Service/Log.h"
 
-namespace Remote {
 namespace {
 
 constexpr uint32_t kAckTimeoutMs = 150;
@@ -15,16 +14,16 @@ constexpr uint32_t kCheckTimeoutMs = 300;
 
 } // namespace
 
-CanMachine& CanMachine::instance() {
-    static CanMachine machine;
+CAN& CAN::instance() {
+    static CAN machine;
     return machine;
 }
 
-CanMachine::CanMachine()
+CAN::CAN()
     : bus_(FRONT32_CAN_TX_PIN, FRONT32_CAN_RX_PIN, canfw::CanBitrate::K500)
     , network_(bus_) {}
 
-bool CanMachine::begin() {
+bool CAN::begin() {
     if (ready_) return true;
 
     ready_ = bus_.begin();
@@ -36,7 +35,7 @@ bool CanMachine::begin() {
     return true;
 }
 
-bool CanMachine::checkAll() {
+bool CAN::checkAll() {
     if (!begin()) return false;
 
     bool ok = true;
@@ -47,7 +46,7 @@ bool CanMachine::checkAll() {
     return ok;
 }
 
-bool CanMachine::stopAll() {
+bool CAN::stopAll() {
     if (!ready_) return true;
 
     bool ok = true;
@@ -58,7 +57,7 @@ bool CanMachine::stopAll() {
     return ok;
 }
 
-bool CanMachine::tableUp(Catalog::SPEED speed) {
+bool CAN::tableUp(Catalog::SPEED speed) {
     return runScenario(FRONT32_CAN_TABLE_ID,
                        Scenario::Id::TableUp,
                        0,
@@ -66,7 +65,7 @@ bool CanMachine::tableUp(Catalog::SPEED speed) {
                        kMoveTimeoutMs);
 }
 
-bool CanMachine::tableDown(Catalog::SPEED speed) {
+bool CAN::tableDown(Catalog::SPEED speed) {
     return runScenario(FRONT32_CAN_TABLE_ID,
                        Scenario::Id::TableDown,
                        0,
@@ -74,7 +73,7 @@ bool CanMachine::tableDown(Catalog::SPEED speed) {
                        kMoveTimeoutMs);
 }
 
-bool CanMachine::guillotineHome(Catalog::SPEED speed) {
+bool CAN::guillotineHome(Catalog::SPEED speed) {
     return runScenario(FRONT32_CAN_GUILLOTINE_ID,
                        Scenario::Id::GuillotineHome,
                        0,
@@ -82,7 +81,7 @@ bool CanMachine::guillotineHome(Catalog::SPEED speed) {
                        kMoveTimeoutMs);
 }
 
-bool CanMachine::guillotineCut() {
+bool CAN::guillotineCut() {
     return runScenario(FRONT32_CAN_GUILLOTINE_ID,
                        Scenario::Id::GuillotineCut,
                        0,
@@ -90,7 +89,7 @@ bool CanMachine::guillotineCut() {
                        kCutTimeoutMs);
 }
 
-bool CanMachine::paperZeroPosition() {
+bool CAN::paperZeroPosition() {
     return runScenario(FRONT32_CAN_PAPER_ID,
                        Scenario::Id::PaperZeroPosition,
                        0,
@@ -98,7 +97,7 @@ bool CanMachine::paperZeroPosition() {
                        kAckTimeoutMs);
 }
 
-bool CanMachine::paperMoveSteps(int32_t steps, bool blocking) {
+bool CAN::paperMoveSteps(int32_t steps, bool blocking) {
     if (blocking) {
         return runScenario(FRONT32_CAN_PAPER_ID,
                            Scenario::Id::PaperMoveSteps,
@@ -115,13 +114,13 @@ bool CanMachine::paperMoveSteps(int32_t steps, bool blocking) {
                          true);
 }
 
-bool CanMachine::paperMoveMm(float mm, float ratioMm, bool blocking) {
+bool CAN::paperMoveMm(float mm, float ratioMm, bool blocking) {
     bool ok = false;
     const int32_t steps = mmToSteps(mm, ratioMm, ok);
     return ok && paperMoveSteps(steps, blocking);
 }
 
-bool CanMachine::paperMoveWithThrowMm(float mm, float ratioMm) {
+bool CAN::paperMoveWithThrowMm(float mm, float ratioMm) {
     bool ok = false;
     const int32_t steps = mmToSteps(mm, ratioMm, ok);
     if (!ok) return false;
@@ -144,7 +143,7 @@ bool CanMachine::paperMoveWithThrowMm(float mm, float ratioMm) {
     return paperDone && throwDone;
 }
 
-bool CanMachine::detectPaper(int32_t maxSteps, ScenarioResult& result) {
+bool CAN::detectPaper(int32_t maxSteps, ScenarioResult& result) {
     return runScenario(FRONT32_CAN_PAPER_ID,
                        Scenario::Id::DetectPaper,
                        maxSteps,
@@ -153,7 +152,7 @@ bool CanMachine::detectPaper(int32_t maxSteps, ScenarioResult& result) {
                        &result);
 }
 
-bool CanMachine::detectMark(int32_t maxSteps, ScenarioResult& result) {
+bool CAN::detectMark(int32_t maxSteps, ScenarioResult& result) {
     return runScenario(FRONT32_CAN_PAPER_ID,
                        Scenario::Id::DetectMark,
                        maxSteps,
@@ -162,7 +161,7 @@ bool CanMachine::detectMark(int32_t maxSteps, ScenarioResult& result) {
                        &result);
 }
 
-bool CanMachine::throwRun(int32_t steps) {
+bool CAN::throwRun(int32_t steps) {
     return runScenario(FRONT32_CAN_THROW_ID,
                        Scenario::Id::ThrowRun,
                        steps,
@@ -170,11 +169,11 @@ bool CanMachine::throwRun(int32_t steps) {
                        kMoveTimeoutMs);
 }
 
-uint16_t CanMachine::speedOption(Catalog::SPEED speed) const {
+uint16_t CAN::speedOption(Catalog::SPEED speed) const {
     return static_cast<uint16_t>(speed);
 }
 
-bool CanMachine::runScenario(uint16_t address,
+bool CAN::runScenario(uint16_t address,
                              Scenario::Id scenario,
                              int32_t value,
                              uint16_t option,
@@ -194,7 +193,7 @@ bool CanMachine::runScenario(uint16_t address,
     return true;
 }
 
-bool CanMachine::startScenario(uint16_t address,
+bool CAN::startScenario(uint16_t address,
                                Scenario::Id scenario,
                                int32_t value,
                                uint16_t option,
@@ -214,7 +213,7 @@ bool CanMachine::startScenario(uint16_t address,
     return true;
 }
 
-bool CanMachine::waitScenario(uint16_t address, uint32_t timeoutMs, ScenarioResult& out) {
+bool CAN::waitScenario(uint16_t address, uint32_t timeoutMs, ScenarioResult& out) {
     if (!begin()) return false;
 
     Scenario::Client client = network_.device<Scenario::Client>(address);
@@ -233,7 +232,7 @@ bool CanMachine::waitScenario(uint16_t address, uint32_t timeoutMs, ScenarioResu
     return true;
 }
 
-bool CanMachine::checkScenarioNode(uint16_t address, const char* name) {
+bool CAN::checkScenarioNode(uint16_t address, const char* name) {
     Scenario::Client client = network_.device<Scenario::Client>(address);
     Scenario::Result result;
     if (!client.readStatus(result, kCheckTimeoutMs)) {
@@ -255,13 +254,13 @@ bool CanMachine::checkScenarioNode(uint16_t address, const char* name) {
     return true;
 }
 
-bool CanMachine::setError(const String& message) {
+bool CAN::setError(const String& message) {
     lastError_ = message;
     Log::E("[CAN] %s", message.c_str());
     return false;
 }
 
-int32_t CanMachine::mmToSteps(float mm, float ratioMm, bool& ok) {
+int32_t CAN::mmToSteps(float mm, float ratioMm, bool& ok) {
     ok = false;
     if (ratioMm <= 0.0f) {
         setError("Invalid paper ratio");
@@ -277,5 +276,3 @@ int32_t CanMachine::mmToSteps(float mm, float ratioMm, bool& ok) {
     ok = true;
     return static_cast<int32_t>(lroundf(raw));
 }
-
-} // namespace Remote
