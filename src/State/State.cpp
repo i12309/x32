@@ -31,11 +31,6 @@
 #include "State/A/Profilling.h"
 #include "State/A/autoPROFILE.h"
 #include "State/A/Slice.h"
-#include "State/A/TEST.h"
-#include "State/A/T100.h"
-#include "State/A/T100B.h"
-#include "State/A/TDL.h"
-#include "State/A/TCUT.h"
 
 void State::init(){
     App::state() = new Boot();
@@ -74,12 +69,6 @@ State* State::Factory(State::Type type){
         case State::Type::PROFILING:     switch(App::machine().type()) { case MachineType::A: return new Profilling(); break;} break;
         case State::Type::SLICE:         switch(App::machine().type()) { case MachineType::A: return new Slice(); break;} break;
         //case State::Type::PROFILING:     switch(App::machine().type()) { case MachineType::A: return new autoPROFILE(); break;} break;
-        case State::Type::TEST:         switch(App::machine().type()) { case MachineType::A: return new TEST(); break;} break;
-        case State::Type::T100:         switch(App::machine().type()) { case MachineType::A: return new T100(); break;} break;
-        case State::Type::TDL:         switch(App::machine().type()) { case MachineType::A: return new TDL(); break;} break;
-        case State::Type::TCUT:         switch(App::machine().type()) { case MachineType::A: return new TCUT(); break;} break;
-        case State::Type::T100B:         switch(App::machine().type()) { case MachineType::A: return new T100B(); break;} break;
-
     }
     return nullptr;
 };

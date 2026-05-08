@@ -65,12 +65,6 @@ public:
         CALIBRATION,
         PROFILING,
         SLICE,
-
-        TEST,
-        T100,
-        T100B,
-        TDL,
-        TCUT,
     };
 
     static String getStateName(State type) {
@@ -103,8 +97,6 @@ public:
             case State::CALIBRATION:       return "CALIBRATION";
             case State::PROFILING:         return "PROFILING";
             case State::SLICE:             return "SLICE";
-
-             case State::TEST:              return "TEST";
 
             default:                      return "UNKNOWN_STATE";
         }

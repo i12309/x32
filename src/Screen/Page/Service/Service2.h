@@ -17,9 +17,6 @@ private:
     static void popBack(lv_event_t* e);
     static void popThrow(lv_event_t* e);
     static void popBigel(lv_event_t* e);
-    static void popTest1(lv_event_t* e);
-    static void popTest2(lv_event_t* e);
-    static void popTest3(lv_event_t* e);
 };
 
 }  // namespace Screen

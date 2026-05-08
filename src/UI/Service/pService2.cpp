@@ -21,19 +21,3 @@
     Log::D(__func__);
     pKnife::getInstance().show();
   }
-
-  void pService2::pop_b1(void* ptr) {
-    Log::D(__func__);
-        App::state()->setNexTypeState(State::Type::T100B);// для того что бы после CHECK он смог перейти в PROFILING
-        App::state()->setFactory(State::Type::CHECK);
-  }
-  void pService2::pop_b2(void* ptr) {
-    Log::D(__func__);
-        App::state()->setNexTypeState(State::Type::TDL);// для того что бы после CHECK он смог перейти в PROFILING
-        App::state()->setFactory(State::Type::CHECK);
-  }
-  void pService2::pop_b3(void* ptr) {
-    Log::D(__func__);
-        App::state()->setNexTypeState(State::Type::TCUT);// для того что бы после CHECK он смог перейти в PROFILING
-        App::state()->setFactory(State::Type::CHECK);
-  }
