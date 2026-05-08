@@ -41,7 +41,7 @@ class pDevice: public Page {
           bParams.attachPop(pop_bParams, &bParams);
           bPinTest.attachPop(pop_bPinTest, &bPinTest);
           bNULL.attachPop(pop_bNULL, &bNULL);
-          bPressure.attachPop(pop_bPressure, &bPressure);
+          // bPressure.attachPop(pop_bPressure, &bPressure);
           b5.attachPop(pop_b5, &b5);
           b6.attachPop(pop_b6, &b6);
       }

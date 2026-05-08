@@ -28,8 +28,8 @@ void pDevice::pop_bPinTest(void* ptr){
 
 void pDevice::pop_bPressure(void* ptr){
   Log::D(__func__);
-  pINFO::showInfo("", "", "");
-  App::state()->setFactory(State::Type::PRESSURE);
+  // pINFO::showInfo("", "", "");
+  // App::state()->setFactory(State::Type::PRESSURE);
 }
 
 void pDevice::pop_bNULL(void* ptr){

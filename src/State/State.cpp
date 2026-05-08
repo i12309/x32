@@ -3,7 +3,6 @@
 // Состояние для железа 
 #include "State/Device/Boot.h"
 #include "State/Device/Check.h"
-#include "State/Device/Pressure.h"
 
 // Системные состояния - для всех устройств 
 #include "State/System/Idle.h"
@@ -20,7 +19,6 @@
 #include "State/A/Process.h"
 #include "State/A/Calibration.h"
 #include "State/A/Profilling.h"
-#include "State/A/autoPROFILE.h"
 #include "State/A/Slice.h"
 
 void State::init(){
@@ -38,7 +36,7 @@ State* State::Factory(State::Type type){
         case State::Type::ERROR:              return new Error(); break;
 
         case State::Type::FRAME:       return new FRAME(); break;
-        case State::Type::PRESSURE:       return new Pressure(); break;
+        // case State::Type::PRESSURE:       return new Pressure(); break;
         case State::Type::DONE:         return new DONE(); break;
         case State::Type::ACTION:       return new ACTION(); break;
 
@@ -48,7 +46,6 @@ State* State::Factory(State::Type type){
         case State::Type::CALIBRATION:   switch(App::machine().type()) { case MachineType::A: return new Calibration(); break;} break;
         case State::Type::PROFILING:     switch(App::machine().type()) { case MachineType::A: return new Profilling(); break;} break;
         case State::Type::SLICE:         switch(App::machine().type()) { case MachineType::A: return new Slice(); break;} break;
-        //case State::Type::PROFILING:     switch(App::machine().type()) { case MachineType::A: return new autoPROFILE(); break;} break;
     }
     return nullptr;
 };
