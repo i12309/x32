@@ -16,26 +16,12 @@
 
 namespace Version {
 
-constexpr int kProductVersion = PRODUCT_VERSION;
-constexpr const char* kEspVersion = APP_VERSION;
-constexpr int kBuildNumber = APP_BUILD_NUMBER;
-
-inline int espVersionInt() {
-    return atoi(APP_VERSION);
-}
-
-inline String makeDeviceVersion(int nextionVersion,
-                                int espVersion = espVersionInt(),
+inline String getVersion(int espVersion = atoi(APP_VERSION),
                                 int buildNumber = APP_BUILD_NUMBER,
                                 int productVersion = PRODUCT_VERSION) {
     return String(productVersion) + "." +
-           String(nextionVersion < 0 ? 0 : nextionVersion) + "." +
            String(espVersion) + "." +
            String(buildNumber);
-}
-
-inline String makeDeviceVersionFromNextionText(const String& nextionText) {
-    return makeDeviceVersion(nextionText.toInt());
 }
 
 } // namespace Version

@@ -35,7 +35,7 @@ void Update::onShow() {
 
     Ui::setText(objects.update_dev_ver, versionEsp);
     Ui::setText(objects.update_scr_ver, "LVGL");
-    Ui::setText(objects.update_version, String("Версия: ") + Version::makeDeviceVersion(0));
+    Ui::setText(objects.update_version, String("Версия: ") + Version::getVersion());
 }
 
 void Update::setAutoUpdateUi() {

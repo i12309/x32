@@ -23,7 +23,6 @@ public:
             int* webEnabled = nullptr;
             int* autoUpdate = nullptr;
             int* updateEsp = nullptr;
-            int* updateTft = nullptr;
         };
 
         struct StorageContext {

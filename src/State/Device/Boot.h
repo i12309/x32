@@ -5,7 +5,6 @@
 #include "Service/HServer.h"
 #include "Service/NVS.h"
 #include "Service/ESPUpdate.h"
-#include "Service/NexUpdate.h"
 #include "Service/Licence.h"
 #include "Service/Stats.h"
 #include "version.h"
@@ -83,7 +82,7 @@ public:
         }
 
         if (!plan.hasPending()) {
-            Log::L(" === END LOAD v.%s", Version::makeDeviceVersion(NexUpdate::getInstance().getCurrentVersion()).c_str());
+            Log::L(" === END LOAD v.%s", Version::getVersion().c_str());
             Data::param.reset();
             App::mode() = Mode::NORMAL;
             App::diag().clearErrors();
@@ -100,7 +99,7 @@ public:
 
 private:
     static bool LogStart() {
-        Log::L(" === START v.%s", Version::makeDeviceVersion(NexUpdate::getInstance().getCurrentVersion()).c_str());
+        Log::L(" === START v.%s", Version::getVersion().c_str());
         Log::D("ESP32 Chip: %s Rev %d", ESP.getChipModel(), ESP.getChipRevision());
         Log::D("Flash size: %d", ESP.getFlashChipSize());
         return true;

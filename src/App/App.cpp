@@ -26,7 +26,6 @@ App::Context buildAppContext() {
     ctx.config.webEnabled = &settings.WEB;
     ctx.config.autoUpdate = &settings.AUTO_UPDATE;
     ctx.config.updateEsp = &settings.UPDATE;
-    ctx.config.updateTft = &settings.TFT_UPDATE;
 
     ctx.storage.dataDoc = &data.doc;
 
