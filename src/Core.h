@@ -4,6 +4,7 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <string>
+#include <vector>
 
 #include "config.h"
 #include "Machine/MachineSpec.h"
@@ -258,6 +259,237 @@ private:
         String name;
         String group;
 
+        // Настройки CAN-шины головного устройства из секции config.CAN.
+        // Здесь только параметры транспорта; логика BOOT/передачи конфига будет отдельным слоем.
+        struct CanBusConfig {
+            bool enabled = false;
+            int tx = 27;
+            int rx = 26;
+            int bitrate = 500;
+            uint32_t ackTimeoutMs = 150;
+            uint32_t checkTimeoutMs = 300;
+        };
+
+        // Загруженный конфиг одной ноды из файла /node_<NAME>.json.
+        // payload хранит весь JSON без форматирования, чтобы позже отправить его ноде по CAN.
+        struct NodeConfig {
+            String name;
+            String path;
+            String payload;
+            String mac;
+            uint16_t canID = 0;
+            // Групповой CAN ID из верхнего поля node.group.
+            // Нода слушает и свой индивидуальный CAN.canID, и этот групповой адрес.
+            uint16_t groupID = 0;
+            bool hasMac = false;
+            bool hasCanID = false;
+            bool hasGroupID = false;
+        };
+
+        CanBusConfig can;
+        std::vector<NodeConfig> nodes;
+
+        // true означает, что config.json описывает головное устройство CAN-сети,
+        // а не старый монолит с полным локальным device.
+        bool isCanCoordinator() const {
+            return can.enabled || doc["nodes"].is<JsonArrayConst>();
+        }
+
+        // Поиск загруженной ноды по логическому имени из config.nodes.
+        const NodeConfig* findNode(const String& nodeName) const {
+            for (const NodeConfig& node : nodes) {
+                if (node.name == nodeName) return &node;
+            }
+            return nullptr;
+        }
+
+        // Поиск ноды по MAC из BootHello. Сейчас реальные MAC могут отсутствовать,
+        // поэтому заглушки 00:00... намеренно не участвуют в сопоставлении.
+        const NodeConfig* findNodeByMac(const String& mac) const {
+            for (const NodeConfig& node : nodes) {
+                if (node.hasMac && node.mac == mac) return &node;
+            }
+            return nullptr;
+        }
+
+        // Разбирает CAN ID из JSON: поддерживает число или строку вида "0x201".
+        // Ограничение 0x7FF соответствует стандартному 11-битному CAN identifier.
+        static uint16_t parseCanID(JsonVariantConst value, bool& ok) {
+            ok = false;
+            if (value.isNull()) return 0;
+
+            if (value.is<int>()) {
+                int raw = value.as<int>();
+                if (raw < 0 || raw > 0x7FF) return 0;
+                ok = true;
+                return static_cast<uint16_t>(raw);
+            }
+
+            const char* text = value | "";
+            if (text == nullptr || text[0] == '\0') return 0;
+
+            char* end = nullptr;
+            unsigned long raw = strtoul(text, &end, 0);
+            if (end == text || *end != '\0' || raw > 0x7FFUL) return 0;
+
+            ok = true;
+            return static_cast<uint16_t>(raw);
+        }
+
+        // Временные MAC-заглушки не считаются реальными идентификаторами железа.
+        static bool isPlaceholderMac(const String& mac) {
+            return mac.length() == 0 ||
+                   mac == "00:00:00:00" ||
+                   mac == "00:00:00:00:00:00";
+        }
+
+        // Единое правило имени файла ноды: /node_TABLE.json, /node_PAPER.json и т.д.
+        static String nodePath(const String& nodeName) {
+            return String("/node_") + nodeName + ".json";
+        }
+
+        // Загружает один файл ноды, проверяет минимально обязательные поля
+        // и готовит payload для будущей передачи в эту ноду.
+        bool loadNodeConfig(const String& nodeName, NodeConfig& out) {
+            out = NodeConfig();
+            out.name = nodeName;
+            out.path = nodePath(nodeName);
+
+            if (!LittleFS.exists(out.path)) {
+                Log::E("[Config] Node '%s' listed but file '%s' is missing", nodeName.c_str(), out.path.c_str());
+                return false;
+            }
+
+            File file = LittleFS.open(out.path, "r");
+            if (!file) {
+                Log::E("[Config] Failed to open node config '%s'", out.path.c_str());
+                return false;
+            }
+            if (file.size() == 0) {
+                file.close();
+                Log::E("[Config] Node config '%s' is empty", out.path.c_str());
+                return false;
+            }
+
+            JsonDocument nodeDoc;
+            DeserializationError error = deserializeJson(nodeDoc, file);
+            file.close();
+            if (error) {
+                Log::E("[Config] Failed to parse node config '%s': %s", out.path.c_str(), error.c_str());
+                return false;
+            }
+
+            const String declaredName = nodeDoc["name"] | "";
+            if (declaredName.length() > 0 && declaredName != nodeName) {
+                Log::D("[Config] Node file '%s' name='%s' differs from listed node '%s'",
+                       out.path.c_str(), declaredName.c_str(), nodeName.c_str());
+            }
+
+            bool groupOk = false;
+            out.groupID = parseCanID(nodeDoc["group"], groupOk);
+            out.hasGroupID = groupOk;
+            if (!out.hasGroupID) {
+                Log::E("[Config] Node '%s' has invalid or missing group", nodeName.c_str());
+                return false;
+            }
+
+            JsonObjectConst canObj = nodeDoc["CAN"];
+            if (canObj.isNull()) {
+                Log::E("[Config] Node '%s' has no CAN section", nodeName.c_str());
+                return false;
+            }
+
+            out.mac = canObj["mac"] | "";
+            out.hasMac = !isPlaceholderMac(out.mac);
+            if (!out.hasMac) {
+                Log::D("[Config] Node '%s' has no real CAN.mac; BOOT cannot map hello MAC to this node yet",
+                       nodeName.c_str());
+            }
+
+            bool canIDOk = false;
+            out.canID = parseCanID(canObj["canID"], canIDOk);
+            out.hasCanID = canIDOk;
+            if (!out.hasCanID) {
+                Log::E("[Config] Node '%s' has invalid or missing CAN.canID", nodeName.c_str());
+                return false;
+            }
+
+            if (!nodeDoc["device"].is<JsonObjectConst>()) {
+                Log::E("[Config] Node '%s' has no device section", nodeName.c_str());
+                return false;
+            }
+
+            out.payload = "";
+            serializeJson(nodeDoc, out.payload);
+            return true;
+        }
+
+        // Загружает CAN-секцию головного конфига и все файлы нод из nodes[].
+        // На этом этапе проверяется только структура и адресация, без создания устройств.
+        bool loadCanConfig() {
+            can = CanBusConfig();
+            nodes.clear();
+
+            JsonObjectConst canObj = doc["CAN"];
+            can.enabled = !canObj.isNull() && ((canObj["enabled"] | 0) == 1);
+            if (!canObj.isNull()) {
+                can.tx = canObj["tx"] | can.tx;
+                can.rx = canObj["rx"] | can.rx;
+                can.bitrate = canObj["bitrate"] | can.bitrate;
+                JsonObjectConst timeouts = canObj["timeouts_ms"];
+                if (!timeouts.isNull()) {
+                    can.ackTimeoutMs = timeouts["ack"] | can.ackTimeoutMs;
+                    can.checkTimeoutMs = timeouts["check"] | can.checkTimeoutMs;
+                }
+            }
+
+            JsonArrayConst nodeArray = doc["nodes"];
+            if (nodeArray.isNull()) {
+                return true;
+            }
+
+            bool ok = true;
+            for (JsonVariantConst item : nodeArray) {
+                const char* nodeNameRaw = item | "";
+                String nodeName = nodeNameRaw ? String(nodeNameRaw) : String();
+                nodeName.trim();
+                if (nodeName.length() == 0) {
+                    Log::E("[Config] Empty node name in nodes array");
+                    ok = false;
+                    continue;
+                }
+                if (findNode(nodeName) != nullptr) {
+                    Log::E("[Config] Duplicate node '%s' in nodes array", nodeName.c_str());
+                    ok = false;
+                    continue;
+                }
+
+                NodeConfig node;
+                if (!loadNodeConfig(nodeName, node)) {
+                    ok = false;
+                    continue;
+                }
+
+                for (const NodeConfig& existing : nodes) {
+                    if (existing.canID == node.canID) {
+                        Log::E("[Config] Duplicate CAN.canID 0x%s for nodes '%s' and '%s'",
+                               String(node.canID, HEX).c_str(), existing.name.c_str(), node.name.c_str());
+                        ok = false;
+                    }
+                    if (existing.hasMac && node.hasMac && existing.mac == node.mac) {
+                        Log::E("[Config] Duplicate CAN.mac '%s' for nodes '%s' and '%s'",
+                               node.mac.c_str(), existing.name.c_str(), node.name.c_str());
+                        ok = false;
+                    }
+                }
+                nodes.push_back(node);
+            }
+
+            Log::D("[Config] CAN: enabled=%d tx=%d rx=%d bitrate=%d nodes=%d",
+                   can.enabled ? 1 : 0, can.tx, can.rx, can.bitrate, static_cast<int>(nodes.size()));
+            return ok;
+        }
+
         // записать дефолтный config.json
         bool writeDefault() {
             ConfigDefaults::Options options;
@@ -345,6 +577,13 @@ private:
                 Log::D("Ошибка загрузки секции settings");
                 return false;
             }
+            if (!loadCanConfig()) {
+                Log::E("[Config] CAN config validation failed");
+                return false;
+            }
+            if (isCanCoordinator()) {
+                return true;
+            }
             Catalog::MachineType machineType = Catalog::getMachine(machine);
             MachineSpec spec = MachineSpec::get(machineType);
             JsonObjectConst deviceObj = doc["device"];
@@ -404,6 +643,7 @@ private: struct Settings {
         String FIRMWARE;
         String HASH;
         int UPDATE;
+        String UPDATE_URL;
 
         String TFT_VERSION;
         String TFT_FIRMWARE;
@@ -460,6 +700,7 @@ private: struct Settings {
             settings.FIRMWARE = obj["FIRMWARE"] | "";
             settings.HASH = obj["HASH"] | "";
             settings.UPDATE = obj["UPDATE"] | 0;
+            settings.UPDATE_URL = obj["UPDATE_URL"] | "";
 
             settings.TFT_VERSION = obj["TFT_VERSION"] | "";
             settings.TFT_FIRMWARE = obj["TFT_FIRMWARE"] | "";
@@ -489,6 +730,7 @@ private: struct Settings {
             obj["FIRMWARE"] = settings.FIRMWARE;
             obj["HASH"] = settings.HASH;
             obj["UPDATE"] = settings.UPDATE;
+            obj["UPDATE_URL"] = settings.UPDATE_URL;
             obj["TFT_VERSION"] = settings.TFT_VERSION;
             obj["TFT_FIRMWARE"] = settings.TFT_FIRMWARE;
             obj["TFT_UPDATE"] = settings.TFT_UPDATE;

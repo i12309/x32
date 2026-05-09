@@ -3,69 +3,59 @@
   "machine": "NODE",
   "name": "PAPER",
   "group": "0x000",
-  "settings": {
-    "AUTO_UPDATE": 0,
-    "UPDATE": 1,
-    "VERSION_URL": "http://45.9.43.227/update/",
-    "CONNECT_WIFI": 1,
-    "ACCESS_POINT": 0,
-    "HTTP_SERVER": 1,
-    "CHECK_SYSTEM": 1,
-    "log": 0,
-    "metrics": 1
-  },
+  "mac":"00:00:00:00",
+  "canID":"0x203",
+  "settings": {},
   "CAN":{
-    "mac":"00:00:00:00",
-    "canID":"0x203",
-    "tx": 27,
-    "rx": 26,
+    "tx": 6,
+    "rx": 7,
     "bitrate": 500
   },
-      "devices":{
-        "motors": {
-          "PAPER": {
-            "driver": "RMT",
-            "pin":{"step": 19, "dir": 2, "ena": 3},
-            "DelayToEnable": 2000,
-            "DelayToDisable": 6000,
-            "LinearAcceleration": 100,
-            "signal":{"dir_forward": 1, "ena_active": 0},
-            "MicroStep": 3200,
-            "WorkMove": 3200,
-            "Trace": 1,
-            "TraceSamples": 4096,
-            "TracePcnt": 0,
-            "useEncoderCorrection": 1,
-            "Speed":[
-              {"Mode":"Normal","Speed": 16000, "Acceleration": 32000},
-              {"Mode":"Slow","Speed": 9600, "Acceleration": 9600},
-              {"Mode":"Paper","Speed": 4800, "Acceleration": 32000},
-              {"Mode":"Mark","Speed": 2400, "Acceleration": 32000},
-              {"Mode":"Force","Speed": 32000, "Acceleration": 32000}
-            ],
-            "Check": [
-              {"Mode":"PAPER_NOT_FOUND","step": 7200, "ms": -1},
-              {"Mode":"PAPER_FIND_IN_MARK","step": 1000, "ms": -1},
-              {"Mode":"PAPER_FIND_OUT_MARK","step": 1000, "ms": -1},
-              {"Mode":"PAPER_SEARCH","step": 30000, "ms": -1}
-            ]
-          }
-        },
-        "sensors": {
-        },
-        "optical": {
-          "MARK": {"pin": 35, "sig": 1},
-          "EDGE": {"pin": 36, "sig": 0}
-        },
-        "encoders": {
-          "PAPER": {
-            "pinA": 4,
-            "pinB": 5,
-            "pcnt": 7,
-            "threshold": -1,
-            "debug": 1,
-            "debugIntervalMs": 300
-          }
-        }
+  "device":{
+    "motors": {
+      "PAPER": {
+        "driver": "RMT",
+        "pin":{"step": 19, "dir": 2, "ena": 3},
+        "DelayToEnable": 2000,
+        "DelayToDisable": 6000,
+        "LinearAcceleration": 100,
+        "signal":{"dir_forward": 1, "ena_active": 0},
+        "MicroStep": 3200,
+        "WorkMove": 3200,
+        "Trace": 1,
+        "TraceSamples": 4096,
+        "TracePcnt": 0,
+        "useEncoderCorrection": 1,
+        "Speed":[
+          {"Mode":"Normal","Speed": 16000, "Acceleration": 32000},
+          {"Mode":"Slow","Speed": 9600, "Acceleration": 9600},
+          {"Mode":"Paper","Speed": 4800, "Acceleration": 32000},
+          {"Mode":"Mark","Speed": 2400, "Acceleration": 32000},
+          {"Mode":"Force","Speed": 32000, "Acceleration": 32000}
+        ],
+        "Check": [
+          {"Mode":"PAPER_NOT_FOUND","step": 7200, "ms": -1},
+          {"Mode":"PAPER_FIND_IN_MARK","step": 1000, "ms": -1},
+          {"Mode":"PAPER_FIND_OUT_MARK","step": 1000, "ms": -1},
+          {"Mode":"PAPER_SEARCH","step": 30000, "ms": -1}
+        ]
       }
+    },
+    "sensors": {
+    },
+    "optical": {
+      "MARK": {"pin": 35, "sig": 1},
+      "EDGE": {"pin": 36, "sig": 0}
+    },
+    "encoders": {
+      "PAPER": {
+        "pinA": 4,
+        "pinB": 5,
+        "pcnt": 7,
+        "threshold": -1,
+        "debug": 1,
+        "debugIntervalMs": 300
+      }
+    }
+  }
 }

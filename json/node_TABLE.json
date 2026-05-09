@@ -3,25 +3,15 @@
   "machine": "NODE",
   "name": "TABLE",
   "group": "0x000",
-  "settings": {
-    "AUTO_UPDATE": 0,
-    "UPDATE": 1,
-    "VERSION_URL": "http://45.9.43.227/update/",
-    "CONNECT_WIFI": 1,
-    "ACCESS_POINT": 0,
-    "HTTP_SERVER": 1,
-    "CHECK_SYSTEM": 1,
-    "log": 0,
-    "metrics": 1
-  },
+  "mac":"00:00:00:00",
+  "canID":"0x201",
+  "settings": {},
   "CAN":{
-      "mac":"00:00:00:00",
-      "canID":"0x201",
-    "tx": 27,
-    "rx": 26,
+    "tx": 6,
+    "rx": 7,
     "bitrate": 500
   },
-  "devices":{
+  "device":{
     "motors": {
         "TABLE": {
         "driver": "RMT",

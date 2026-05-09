@@ -1,40 +1,15 @@
 #pragma once
 
 #include <Arduino.h>
+#include <memory>
 
 #include "Catalog.h"
 #include "CanNetwork.h"
 #include "backends/esp32/Esp32TwaiBus.h"
 #include "protocols/scenario/Scenario.h"
 
-#ifndef FRONT32_CAN_TX_PIN
-#define FRONT32_CAN_TX_PIN 27
-#endif
-
-#ifndef FRONT32_CAN_RX_PIN
-#define FRONT32_CAN_RX_PIN 26
-#endif
-
-#ifndef FRONT32_CAN_TABLE_ID
-#define FRONT32_CAN_TABLE_ID 0x201
-#endif
-
-#ifndef FRONT32_CAN_GUILLOTINE_ID
-#define FRONT32_CAN_GUILLOTINE_ID 0x202
-#endif
-
-#ifndef FRONT32_CAN_PAPER_ID
-#define FRONT32_CAN_PAPER_ID 0x203
-#endif
-
-#ifndef FRONT32_CAN_THROW_ID
-#define FRONT32_CAN_THROW_ID 0x204
-#endif
-
-#ifndef FRONT32_CAN_GROUP_FEED_THROW_ID
-#define FRONT32_CAN_GROUP_FEED_THROW_ID 0x220
-#endif
-
+// Результат выполнения удаленного сценария на ноде.
+// Хранит и транспортный статус ожидания, и код ошибки, присланный самой нодой.
 struct ScenarioResult {
     bool ok = false;
     Scenario::Status status = Scenario::Status::Error;
@@ -89,11 +64,18 @@ private:
                       uint32_t timeoutMs,
                       ScenarioResult& out);
     bool checkScenarioNode(uint16_t address, const char* name);
+    // Возвращает CAN ID ноды по имени из загруженного config.nodes.
+    bool nodeAddress(const char* nodeName, uint16_t& out);
+    // Возвращает group ID для синхронного старта PAPER+THROW.
+    // Сейчас обе ноды должны иметь одинаковый node.group.
+    bool groupFeedThrowAddress(uint16_t& out);
     bool setError(const String& message);
     int32_t mmToSteps(float mm, float ratioMm, bool& ok);
 
-    canfw::Esp32TwaiBus bus_;
-    canfw::CanNetwork network_;
+    // TWAI bus создается после загрузки config.json, потому что пины и bitrate
+    // теперь приходят из секции CAN, а не из compile-time define.
+    std::unique_ptr<canfw::Esp32TwaiBus> bus_;
+    std::unique_ptr<canfw::CanNetwork> network_;
     bool ready_ = false;
     String lastError_;
 };

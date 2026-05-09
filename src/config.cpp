@@ -12,6 +12,7 @@ void fillSettings(JsonObject settings, bool accessPoint) {
     settings["VERSION"] = "firmware.txt";
     settings["FIRMWARE"] = "firmware.bin";
     settings["HASH"] = "firmware.md5";
+    settings["UPDATE_URL"] = "";
 
     settings["TFT_UPDATE"] = 1;
     settings["TFT_VERSION"] = "ui.txt";
