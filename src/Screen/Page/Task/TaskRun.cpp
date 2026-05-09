@@ -71,10 +71,6 @@ void TaskRun::popStart(lv_event_t* e) {
 
     String cycles = Ui::getText(objects.task_run_cycles);
     cycles.trim();
-    if (!T::isStringValidInteger(cycles)) {
-        Info::showInfo("", "Некорректное кол-во листов", "", nullptr, nullptr, true);
-        return;
-    }
 
     Data::work.TOTAL_CYCLES = cycles.toInt();
     if (Data::work.TOTAL_CYCLES <= 0) {

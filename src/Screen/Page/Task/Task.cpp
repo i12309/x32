@@ -56,8 +56,7 @@ bool Task::validateTaskInputs(const String& name, const String& product) const {
         Info::showInfo("Задание", "Не выбран профиль", "", nullptr, nullptr, true);
         return false;
     }
-    float productValue = atof(product.c_str());
-    if (!T::isStringValidFloat(product.c_str()) || productValue <= 0.0f) {
+    if (atof(product.c_str()) <= 0.0f) {
         Info::showInfo("Задание", "Изделие должно быть > 0", "", nullptr, nullptr, true);
         return false;
     }
@@ -78,12 +77,6 @@ void Task::saveTask(bool create) {
     firstCut.trim();
 
     if (!validateTaskInputs(name, product)) return;
-    if (!T::isStringValidFloat(over.c_str()) ||
-        !T::isStringValidFloat(lastCut.c_str()) ||
-        !T::isStringValidFloat(firstCut.c_str())) {
-        Info::showInfo("Задание", "Некорректные числовые параметры", "", nullptr, nullptr, true);
-        return;
-    }
 
     const bool withoutMark = Ui::dropdownSelected(objects.obj42) == 1;
     if (create) Data::work.task.setID(Data::tasks.maxID());

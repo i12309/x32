@@ -58,11 +58,6 @@ void Profile::saveProfile(bool create) {
     length.trim();
     ratio.trim();
 
-    if (!T::isStringValidFloat(ratio.c_str()) || !T::isStringValidFloat(length.c_str())) {
-        Info::showInfo("Профиль", "Некорректные числовые параметры", "", nullptr, nullptr, true);
-        return;
-    }
-
     if (create) Data::work.profile.setID(Data::profiles.maxID());
     Data::work.profile.NAME = name;
     Data::work.profile.DESC = desc;

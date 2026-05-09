@@ -68,15 +68,8 @@ private:
             "Внесите получившееся значение (в мм)",
             "0",
             [](const String& widthText) {
-                String trimmed = widthText;
-                trimmed.trim();
 
-                if (!T::isStringValidFloat(trimmed.c_str())) {
-                    Log::D("Ввели неправильное значение");
-                    return;
-                }
-
-                const float width = trimmed.toFloat();
+                const float width = widthText.toFloat();
                 if (width <= 0.0f) {
                     Log::D("Ввели значение <= 0");
                     return;
