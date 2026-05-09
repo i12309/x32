@@ -100,7 +100,7 @@ int ESPUpdate::checkForUpdate() {
     }
 
     for (int level = 1; level <= 3; ++level) {
-        String versionUrl = Core::settings.getVersionURL(level);
+        String versionUrl = ""; //updateFileUrl("firmware.txt");
         Log::D("Leve: %d, url: %s",level, versionUrl.c_str());
         if (versionUrl.isEmpty()) {
             continue;
@@ -141,7 +141,7 @@ bool ESPUpdate::FirmwareUpdate(int level, ProgressCallback progress) {
     Log::D(__func__);
 
     HTTPClient http;
-    http.begin(Core::settings.getFirmwareURL(level));
+    http.begin("");
     http.setTimeout(10000); // 10 секунд
 
     int httpCode = http.GET();
@@ -314,7 +314,7 @@ bool ESPUpdate::getMD5Hash(String& md5, int level) {
     }
 
     HTTPClient http;
-    http.begin(Core::settings.getHashURL(level) + "?r=" + String(random(10000)));
+    http.begin("" + "?r=" + String(random(10000)));
     http.setTimeout(10000); // 10 секунд
 
     int httpCode = http.GET();

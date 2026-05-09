@@ -8,27 +8,12 @@ namespace detail {
 void fillSettings(JsonObject settings, bool accessPoint) {
     settings["AUTO_UPDATE"] = 0;
     settings["UPDATE"] = 1;
-    settings["SERVER"] = "45.9.43.227";
-    settings["VERSION"] = "firmware.txt";
-    settings["FIRMWARE"] = "firmware.bin";
-    settings["HASH"] = "firmware.md5";
-    settings["UPDATE_URL"] = "";
-
-    settings["TFT_UPDATE"] = 1;
-    settings["TFT_VERSION"] = "ui.txt";
-    settings["TFT_FIRMWARE"] = "ui.tft";
-
+    settings["UPDATE_URL"] = "http://45.9.43.227/update/";
+    settings["MQTT_SERVER"] = "45.9.43.227";
     settings["CONNECT_WIFI"] = 1;
     settings["ACCESS_POINT"] = accessPoint ? 1 : 0;
     settings["HTTP_SERVER"] = 1;
-    settings["WEB"] = 0;
-
-    settings["LOG_BUFFER"] = 0;
     settings["CHECK_SYSTEM"] = 1;
-    settings["ALLOW_MISSING_HARDWARE"] = 0;
-    settings["licence_off"] = 1;
-    settings["MAX_PROFILES"] = 50;
-    settings["MAX_TASKS"] = 50;
     settings["log"] = 1;
     settings["metrics"] = 1;
 }

@@ -12,8 +12,8 @@
     "CONNECT_WIFI": 1,
     "ACCESS_POINT": 0,
     "HTTP_SERVER": 1,
+    "MQTT_SERVER":"45.9.43.227",
     "CHECK_SYSTEM": 1,
-    "ALLOW_MISSING_HARDWARE": 1,
     "log": 0,
     "metrics": 1
   },

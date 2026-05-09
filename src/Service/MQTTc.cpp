@@ -47,7 +47,9 @@
 
     bool MQTTc::connect() {
         // Параметры подключения (замените на свои)
-        const char* mqtt_server = Core::settings.SERVER.c_str();
+        const String mqttServer = Core::settings.MQTT_SERVER;
+        if (mqttServer.isEmpty()) return false;
+        const char* mqtt_server = mqttServer.c_str();
         int mqtt_port = 1883;
         const char* mqtt_user = "ioESP32";
         const char* mqtt_password = "Harvester32";

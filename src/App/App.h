@@ -16,11 +16,9 @@ public:
     struct Context {
         struct ConfigContext {
             String* machineName = nullptr;
-            int* allowMissingHardware = nullptr;
             int* checkSystem = nullptr;
             int* connectWifi = nullptr;
             int* httpServer = nullptr;
-            int* webEnabled = nullptr;
             int* autoUpdate = nullptr;
             int* updateEsp = nullptr;
         };

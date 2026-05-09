@@ -2,7 +2,7 @@
   "config_version": 0,
   "machine": "NODE",
   "name": "PAPER",
-  "group": "0x000",
+  "group": "0x220",
   "mac":"00:00:00:00",
   "canID":"0x203",
   "settings": {},
@@ -15,7 +15,7 @@
     "motors": {
       "PAPER": {
         "driver": "RMT",
-        "pin":{"step": 19, "dir": 2, "ena": 3},
+        "pin":{"step": 18, "dir": 19, "ena": 20},
         "DelayToEnable": 2000,
         "DelayToDisable": 6000,
         "LinearAcceleration": 100,
@@ -44,14 +44,14 @@
     "sensors": {
     },
     "optical": {
-      "MARK": {"pin": 35, "sig": 1},
-      "EDGE": {"pin": 36, "sig": 0}
+      "MARK": {"pin": 0, "sig": 1},
+      "EDGE": {"pin": 1, "sig": 0}
     },
     "encoders": {
       "PAPER": {
-        "pinA": 4,
-        "pinB": 5,
-        "pcnt": 7,
+        "pinA": 21,
+        "pinB": 22,
+        "pcnt": 1,
         "threshold": -1,
         "debug": 1,
         "debugIntervalMs": 300

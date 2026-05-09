@@ -19,11 +19,9 @@ App::Context buildAppContext() {
     auto& data = Core::data;
 
     ctx.config.machineName = &config.machine;
-    ctx.config.allowMissingHardware = &settings.ALLOW_MISSING_HARDWARE;
     ctx.config.checkSystem = &settings.CHECK_SYSTEM;
     ctx.config.connectWifi = &settings.CONNECT_WIFI;
     ctx.config.httpServer = &settings.HTTP_SERVER;
-    ctx.config.webEnabled = &settings.WEB;
     ctx.config.autoUpdate = &settings.AUTO_UPDATE;
     ctx.config.updateEsp = &settings.UPDATE;
 

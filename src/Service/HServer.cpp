@@ -18,8 +18,6 @@ HServer::HServer()
 // Запуск сервера
 void HServer::begin() {
     server.on("/", HTTP_GET, [this]() { handleRoot(); });
-    server.on("/web", HTTP_GET, [this]() { handleWebRedirect(); });
-    server.on("/web-ui-settings", HTTP_GET, [this]() { handleWebUiConfigGet(); });
 
     server.on("/config", HTTP_GET, [this]() { handleConfigGet(); });
     server.on("/config", HTTP_POST, [this]() { handleConfigPost(); });
@@ -84,39 +82,6 @@ void HServer::handleRoot() {
 </body></html>
 )";
     server.send(200, "text/html", html);
-}
-
-// Обработчик получения config.json
-void HServer::handleWebRedirect() {
-    if (!isAuthenticated()) return;
-
-    const IPAddress staIp = WiFi.localIP();
-    const IPAddress apIp = WiFi.softAPIP();
-    const bool hasStaIp = staIp != IPAddress(static_cast<uint32_t>(0));
-    const bool hasApIp = apIp != IPAddress(static_cast<uint32_t>(0));
-    const String deviceIp = hasStaIp ? staIp.toString() : (hasApIp ? apIp.toString() : "0.0.0.0");
-
-    const String webUrl =
-        "http://" + Core::settings.SERVER + "/" +
-        Core::config.machine + "/" +
-        Core::config.group + "/" +
-        Core::config.name + "/web.html?ip=" + deviceIp;
-
-    server.sendHeader("Cache-Control", "no-store");
-    server.sendHeader("Location", webUrl, true);
-    server.send(302, "text/plain; charset=utf-8", "Redirect to WEB UI");
-}
-
-void HServer::handleWebUiConfigGet() {
-    JsonDocument doc;
-    doc["log"] = Core::settings.log;
-
-    String payload;
-    serializeJson(doc, payload);
-
-    server.sendHeader("Access-Control-Allow-Origin", "*");
-    server.sendHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-    server.send(200, "application/json; charset=utf-8", payload);
 }
 
 void HServer::handleConfigGet() {

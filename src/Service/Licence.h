@@ -158,7 +158,7 @@ public:
     bool isValid() {
         if (!isLoaded || !licence.is_active) {
             // Если флаг отключения проверки установлен, лицензия не блокирует запуск.
-            return Core::settings.LICENCE_OFF == 1;
+            return true;
         }
         
         // Проверяем срок действия

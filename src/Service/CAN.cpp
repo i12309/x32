@@ -46,6 +46,48 @@ bool bitrateFromKbps(int kbps, canfw::CanBitrate& out) {
     }
 }
 
+// Разбирает standard CAN ID из JSON ноды.
+uint16_t parseCanID(JsonVariantConst value) {
+    if (value.is<int>()) {
+        int raw = value.as<int>();
+        return (raw >= 0 && raw <= 0x7FF) ? static_cast<uint16_t>(raw) : 0;
+    }
+
+    const char* text = value | "";
+    if (text == nullptr || text[0] == '\0') return 0;
+
+    char* end = nullptr;
+    unsigned long raw = strtoul(text, &end, 0);
+    return (end != text && *end == '\0' && raw <= 0x7FFUL) ? static_cast<uint16_t>(raw) : 0;
+}
+
+// Возвращает payload ноды, загруженный Core из node_<NAME>.json.
+const String* nodePayload(const String& nodeName) {
+    for (size_t i = 0; i < Core::config.nodes.size() && i < Core::config.nodePayloads.size(); ++i) {
+        if (Core::config.nodes[i] == nodeName) return &Core::config.nodePayloads[i];
+    }
+    return nullptr;
+}
+
+// Загружает JSON ноды из payload для CAN-логики.
+bool loadNodeDoc(const String& nodeName, JsonDocument& doc) {
+    const String* payload = nodePayload(nodeName);
+    if (payload == nullptr) return false;
+    return deserializeJson(doc, *payload) == DeserializationError::Ok;
+}
+
+// Возвращает индивидуальный CAN ID ноды из ее JSON payload.
+uint16_t nodeCanID(const String& nodeName) {
+    JsonDocument doc;
+    return loadNodeDoc(nodeName, doc) ? parseCanID(doc["canID"]) : 0;
+}
+
+// Возвращает групповой CAN ID ноды из ее JSON payload.
+uint16_t nodeGroupID(const String& nodeName) {
+    JsonDocument doc;
+    return loadNodeDoc(nodeName, doc) ? parseCanID(doc["group"]) : 0;
+}
+
 } // namespace
 
 CAN& CAN::instance() {
@@ -86,8 +128,8 @@ bool CAN::checkAll() {
         return setError("CAN nodes list is empty");
     }
 
-    for (const auto& node : Core::config.nodes) {
-        ok = checkScenarioNode(node.canID, node.name.c_str()) && ok;
+    for (const String& nodeName : Core::config.nodes) {
+        ok = checkScenarioNode(nodeCanID(nodeName), nodeName.c_str()) && ok;
     }
     return ok;
 }
@@ -96,8 +138,9 @@ bool CAN::stopAll() {
     if (!ready_) return true;
 
     bool ok = true;
-    for (const auto& node : Core::config.nodes) {
-        ok = network_->device<Scenario::Client>(node.canID).cancel(ackTimeoutMs()) && ok;
+    for (const String& nodeName : Core::config.nodes) {
+        uint16_t address = nodeCanID(nodeName);
+        if (address != 0) ok = network_->device<Scenario::Client>(address).cancel(ackTimeoutMs()) && ok;
     }
     return ok;
 }
@@ -330,31 +373,29 @@ bool CAN::nodeAddress(const char* nodeName, uint16_t& out) {
         return setError("Empty CAN node name");
     }
 
-    const auto* node = Core::config.findNode(String(nodeName));
-    if (node == nullptr || !node->hasCanID) {
+    out = nodeCanID(nodeName);
+    if (out == 0) {
         return setError(String("CAN node is not configured: ") + nodeName);
     }
-
-    out = node->canID;
     return true;
 }
 
 bool CAN::groupFeedThrowAddress(uint16_t& out) {
-    const auto* paper = Core::config.findNode("PAPER");
-    const auto* throwNode = Core::config.findNode("THROW");
-    if (paper == nullptr || !paper->hasGroupID) {
+    uint16_t paperGroup = nodeGroupID("PAPER");
+    uint16_t throwGroup = nodeGroupID("THROW");
+    if (paperGroup == 0) {
         return setError("PAPER group is not configured");
     }
-    if (throwNode == nullptr || !throwNode->hasGroupID) {
+    if (throwGroup == 0) {
         return setError("THROW group is not configured");
     }
-    if (paper->groupID != throwNode->groupID) {
+    if (paperGroup != throwGroup) {
         return setError(String("PAPER and THROW are in different CAN groups: 0x") +
-                        String(paper->groupID, HEX) + " vs 0x" +
-                        String(throwNode->groupID, HEX));
+                        String(paperGroup, HEX) + " vs 0x" +
+                        String(throwGroup, HEX));
     }
 
-    out = paper->groupID;
+    out = paperGroup;
     return true;
 }
 
