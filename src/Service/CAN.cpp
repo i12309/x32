@@ -61,28 +61,46 @@ uint16_t parseCanID(JsonVariantConst value) {
     return (end != text && *end == '\0' && raw <= 0x7FFUL) ? static_cast<uint16_t>(raw) : 0;
 }
 
-// Возвращает payload ноды, загруженный Core из node_<NAME>.json.
-const String* nodePayload(const String& nodeName) {
-    for (size_t i = 0; i < Core::config.nodes.size() && i < Core::config.nodePayloads.size(); ++i) {
-        if (Core::config.nodes[i] == nodeName) return &Core::config.nodePayloads[i];
-    }
-    return nullptr;
+String nodePath(const String& nodeName) {
+    return String("/node_") + nodeName + ".json";
 }
 
-// Загружает JSON ноды из payload для CAN-логики.
+// Читает JSON ноды из файла в момент, когда CAN-логике нужны ее параметры.
 bool loadNodeDoc(const String& nodeName, JsonDocument& doc) {
-    const String* payload = nodePayload(nodeName);
-    if (payload == nullptr) return false;
-    return deserializeJson(doc, *payload) == DeserializationError::Ok;
+    const String path = nodePath(nodeName);
+    if (!LittleFS.exists(path)) {
+        Log::E("[CAN] Node '%s' listed but file '%s' is missing", nodeName.c_str(), path.c_str());
+        return false;
+    }
+
+    File file = LittleFS.open(path, "r");
+    if (!file) {
+        Log::E("[CAN] Failed to open node config '%s'", path.c_str());
+        return false;
+    }
+    if (file.size() == 0) {
+        file.close();
+        Log::E("[CAN] Node config '%s' is empty", path.c_str());
+        return false;
+    }
+
+    doc.clear();
+    DeserializationError error = deserializeJson(doc, file);
+    file.close();
+    if (error) {
+        Log::E("[CAN] Failed to parse node config '%s': %s", path.c_str(), error.c_str());
+        return false;
+    }
+    return true;
 }
 
-// Возвращает индивидуальный CAN ID ноды из ее JSON payload.
+// Возвращает индивидуальный CAN ID ноды из ее JSON.
 uint16_t nodeCanID(const String& nodeName) {
     JsonDocument doc;
     return loadNodeDoc(nodeName, doc) ? parseCanID(doc["canID"]) : 0;
 }
 
-// Возвращает групповой CAN ID ноды из ее JSON payload.
+// Возвращает групповой CAN ID ноды из ее JSON.
 uint16_t nodeGroupID(const String& nodeName) {
     JsonDocument doc;
     return loadNodeDoc(nodeName, doc) ? parseCanID(doc["group"]) : 0;
@@ -123,13 +141,23 @@ bool CAN::begin() {
 bool CAN::checkAll() {
     if (!begin()) return false;
 
-    bool ok = true;
-    if (Core::config.nodes.empty()) {
+    JsonArrayConst nodeArray = Core::config.doc["nodes"];
+    if (nodeArray.isNull() || nodeArray.size() == 0) {
         return setError("CAN nodes list is empty");
     }
 
-    for (const String& nodeName : Core::config.nodes) {
-        ok = checkScenarioNode(nodeCanID(nodeName), nodeName.c_str()) && ok;
+    bool ok = true;
+    for (JsonVariantConst item : nodeArray) {
+        const char* nodeNameRaw = item | "";
+        String nodeName = nodeNameRaw ? String(nodeNameRaw) : String();
+        nodeName.trim();
+        if (nodeName.length() == 0) continue;
+        uint16_t address = nodeCanID(nodeName);
+        if (address == 0) {
+            ok = setError(String("CAN node is not configured: ") + nodeName) && ok;
+            continue;
+        }
+        ok = checkScenarioNode(address, nodeName.c_str()) && ok;
     }
     return ok;
 }
@@ -138,7 +166,12 @@ bool CAN::stopAll() {
     if (!ready_) return true;
 
     bool ok = true;
-    for (const String& nodeName : Core::config.nodes) {
+    JsonArrayConst nodeArray = Core::config.doc["nodes"];
+    for (JsonVariantConst item : nodeArray) {
+        const char* nodeNameRaw = item | "";
+        String nodeName = nodeNameRaw ? String(nodeNameRaw) : String();
+        nodeName.trim();
+        if (nodeName.length() == 0) continue;
         uint16_t address = nodeCanID(nodeName);
         if (address != 0) ok = network_->device<Scenario::Client>(address).cancel(ackTimeoutMs()) && ok;
     }

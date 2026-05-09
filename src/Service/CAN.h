@@ -64,7 +64,7 @@ private:
                       uint32_t timeoutMs,
                       ScenarioResult& out);
     bool checkScenarioNode(uint16_t address, const char* name);
-    // Возвращает CAN ID ноды по имени из загруженного config.nodes.
+    // Возвращает CAN ID ноды по имени из списка config.nodes.
     bool nodeAddress(const char* nodeName, uint16_t& out);
     // Возвращает group ID для синхронного старта PAPER+THROW.
     // Сейчас обе ноды должны иметь одинаковый node.group.

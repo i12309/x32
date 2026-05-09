@@ -314,7 +314,7 @@ bool ESPUpdate::getMD5Hash(String& md5, int level) {
     }
 
     HTTPClient http;
-    http.begin("" + "?r=" + String(random(10000)));
+    http.begin(String("ПУТЬ!") + String("?r=") + String(random(10000)));
     http.setTimeout(10000); // 10 секунд
 
     int httpCode = http.GET();

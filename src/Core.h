@@ -4,7 +4,6 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <string>
-#include <vector>
 
 #include "config.h"
 #include "Machine/MachineSpec.h"
@@ -271,13 +270,8 @@ private:
             uint32_t checkTimeoutMs = 300;
         };
 
-        // Загруженный конфиг одной ноды из файла /node_<NAME>.json.
-        // payload хранит весь JSON без форматирования, чтобы позже отправить его ноде по CAN.
         CanBusConfig can;
-        std::vector<String> nodes;
-        std::vector<String> nodePayloads;
 
-        // Поиск загруженной ноды по логическому имени из config.nodes.
         // Разбирает CAN ID из JSON: поддерживает число или строку вида "0x201".
         // Ограничение 0x7FF соответствует стандартному 11-битному CAN identifier.
         static uint16_t parseCanID(JsonVariantConst value) {
@@ -300,50 +294,9 @@ private:
             return static_cast<uint16_t>(raw);
         }
 
-        // Единое правило имени файла ноды: /node_TABLE.json, /node_PAPER.json и т.д.
-        static String nodePath(const String& nodeName) {
-            return String("/node_") + nodeName + ".json";
-        }
-
-        // Загружает один файл ноды и готовит payload для передачи дальше.
-        bool loadNodePayload(const String& nodeName, String& payload) {
-            String path = nodePath(nodeName);
-
-            if (!LittleFS.exists(path)) {
-                Log::E("[Config] Node '%s' listed but file '%s' is missing", nodeName.c_str(), path.c_str());
-                return false;
-            }
-
-            File file = LittleFS.open(path, "r");
-            if (!file) {
-                Log::E("[Config] Failed to open node config '%s'", path.c_str());
-                return false;
-            }
-            if (file.size() == 0) {
-                file.close();
-                Log::E("[Config] Node config '%s' is empty", path.c_str());
-                return false;
-            }
-
-            JsonDocument nodeDoc;
-            DeserializationError error = deserializeJson(nodeDoc, file);
-            file.close();
-            if (error) {
-                Log::E("[Config] Failed to parse node config '%s': %s", path.c_str(), error.c_str());
-                return false;
-            }
-
-            payload = "";
-            serializeJson(nodeDoc, payload);
-            return true;
-            }
-
-        // Загружает CAN-секцию головного конфига и все файлы нод из nodes[].
+        // Загружает только CAN-секцию головного конфига.
         bool loadCanConfig() {
             can = CanBusConfig();
-            nodes.clear();
-            nodePayloads.clear();
-
             JsonObjectConst canObj = doc["CAN"];
             if (!canObj.isNull()) {
                 can.tx = canObj["tx"] | can.tx;
@@ -360,30 +313,7 @@ private:
             if (nodeArray.isNull()) {
                 return true;
             }
-
-            bool ok = true;
-            for (JsonVariantConst item : nodeArray) {
-                const char* nodeNameRaw = item | "";
-                String nodeName = nodeNameRaw ? String(nodeNameRaw) : String();
-                nodeName.trim();
-                if (nodeName.length() == 0) {
-                    Log::E("[Config] Empty node name in nodes array");
-                    ok = false;
-                    continue;
-                }
-                String payload;
-                if (!loadNodePayload(nodeName, payload)) {
-                    ok = false;
-                    continue;
-                }
-
-                nodes.push_back(nodeName);
-                nodePayloads.push_back(payload);
-            }
-
-            Log::D("[Config] CAN: tx=%d rx=%d bitrate=%d nodes=%d",
-                   can.tx, can.rx, can.bitrate, static_cast<int>(nodes.size()));
-            return ok;
+            return true;
         }
 
         // записать дефолтный config.json
