@@ -5,7 +5,7 @@
 #include "Service/Stats.h"
 #include "Screen/Page/Main/Wait.h"
 #include "Screen/Page/Service/Slice.h"
-#include "State/A/CanActions.h"
+#include "State/Main/CanActions.h"
 #include "State/State.h"
 
 class Slice : public State {

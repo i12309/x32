@@ -3,7 +3,7 @@
 #include "Service/Stats.h"
 #include "Screen/Page/Main/Input.h"
 #include "Screen/Page/Profile/Profile.h"
-#include "State/A/CanActions.h"
+#include "State/Main/CanActions.h"
 #include "State/State.h"
 
 class Profilling : public State {
