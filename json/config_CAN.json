@@ -1,0 +1,32 @@
+{
+  "config_version": 0,
+  "machine": "A",
+  "name": "ESP32",
+  "group": "DEV",
+  "settings": {
+    "AUTO_UPDATE": 0,
+    "UPDATE": 1,
+    "VERSION_URL": "http://45.9.43.227/update/",
+    "CONNECT_WIFI": 1,
+    "ACCESS_POINT": 0,
+    "HTTP_SERVER": 1,
+    "CHECK_SYSTEM": 1,
+    "ALLOW_MISSING_HARDWARE": 1,
+    "log": 0,
+    "metrics": 1
+  },
+  "device":{
+    "buttons": {"START": {"pin": 16}}
+  },
+  "CAN":{
+    "enabled": 1,
+    "tx": 27,
+    "rx": 26,
+    "bitrate": 500,
+    "timeouts_ms": {
+      "ack": 150,
+      "check": 300
+    }
+  },
+  "nodes": ["TABLE","PAPER","GUILLOTINE","THROW"]
+}

@@ -1,0 +1,49 @@
+{
+  "config_version": 0,
+  "machine": "NODE",
+  "name": "TABLE",
+  "group": "0x000",
+  "settings": {
+    "AUTO_UPDATE": 0,
+    "UPDATE": 1,
+    "VERSION_URL": "http://45.9.43.227/update/",
+    "CONNECT_WIFI": 1,
+    "ACCESS_POINT": 0,
+    "HTTP_SERVER": 1,
+    "CHECK_SYSTEM": 1,
+    "log": 0,
+    "metrics": 1
+  },
+  "CAN":{
+      "mac":"00:00:00:00",
+      "canID":"0x201",
+    "tx": 27,
+    "rx": 26,
+    "bitrate": 500
+  },
+  "devices":{
+    "motors": {
+        "TABLE": {
+        "driver": "RMT",
+        "pin":{"step": 23, "dir": 0, "ena": 1},
+        "DelayToEnable": 2000,
+        "DelayToDisable": 6000,
+        "LinearAcceleration": 0,
+        "MicroStep": 3200,
+        "Speed":[
+            {"Mode":"Normal","Speed": 16000, "Acceleration": 32000},
+            {"Mode":"Slow","Speed": 9600, "Acceleration": 9600}
+        ],
+        "WorkMove": 9500,
+        "Check": [
+            {"Mode":"TABLE_NOT_DOWN","step": 19000, "ms": -1},
+            {"Mode":"TABLE_NOT_UP","step": 19000, "ms": -1}
+        ]
+        }
+    },
+    "sensors": { 
+        "TABLE_UP": {"pin": 0},
+        "TABLE_DOWN": {"pin": 1}
+    }
+  }
+}

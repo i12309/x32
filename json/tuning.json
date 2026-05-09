@@ -1,0 +1,11 @@
+{
+    "EDGE_DISTANCE_mm": 34.2,
+    "SENSOR_DISTANCE_mm": 34.2,
+    "DELTA_mm": 0,
+    "MARK_LENGHT_mm": 3,
+    "OVER_mm": 1.5,
+    "DISTANCE_BETWEEN_MARKS_mm": 40,
+    "CUT_count": 12,
+    "PROFILE_WIDTH_step": 2000,
+    "PROFILE_COUNT_CUT": 5
+}
