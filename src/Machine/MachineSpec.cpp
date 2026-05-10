@@ -23,37 +23,31 @@ MachineSpec MachineSpec::makeUnknown() {
 }
 
 void MachineSpec::fillControllerDefaults(JsonObject root) const {
-    // Пустой каркас. Конкретное наполнение делает ConfigDefaults.
     root["nodes"].to<JsonArray>();
     root["groups"].to<JsonObject>();
 }
 
 void MachineSpec::fillDeviceDefaults(JsonObject device) const {
-    // Переходный мост для старого ConfigDefaults, который пока пишет config.device.
-    // Новая модель строится от корня и использует fillControllerDefaults().
     (void)device;
 }
 
-MachineSpec::Report MachineSpec::validateControllerConfig(JsonObjectConst root) const {
+MachineSpec::Report MachineSpec::validateControllerConfig(
+    JsonObjectConst root,
+    const std::vector<NodeInfo>& nodes
+) const {
     Report report;
 
     if (type_ == Catalog::MachineType::UNKNOWN) {
-        report.errors.push_back("[MachineSpec] Неизвестный MachineType, спецификация не выбрана.");
-        report.allowMotion = false;
-        return report;
-    }
-
-    JsonArrayConst nodes = root["nodes"];
-    if (nodes.isNull()) {
-        report.errors.push_back("[MachineSpec] В config отсутствует секция nodes.");
+        report.errors.push_back("[MachineSpec] unknown MachineType, spec was not selected");
         report.allowMotion = false;
         return report;
     }
 
     for (const NodeRequirement& req : requiredNodes_) {
-        if (arrayHasNode(nodes, req.name)) continue;
+        if (findNode(nodes, req.name) != nullptr) continue;
 
-        const String msg = String("[MachineSpec] Отсутствует обязательная нода в config.nodes: ") + req.name;
+        const String msg = String("[MachineSpec] required node is missing for machine ") +
+                           Catalog::machineName(type_) + ": " + req.name;
         if (req.criticalForMotion) {
             report.errors.push_back(msg);
             report.allowMotion = false;
@@ -64,15 +58,21 @@ MachineSpec::Report MachineSpec::validateControllerConfig(JsonObjectConst root) 
 
     JsonObjectConst groups = root["groups"];
     if (groups.isNull() && !requiredGroups_.empty()) {
-        report.errors.push_back("[MachineSpec] В config отсутствует секция groups.");
+        report.errors.push_back("[MachineSpec] config.groups is missing");
         report.allowMotion = false;
         return report;
     }
 
     for (const GroupRequirement& req : requiredGroups_) {
-        if (!arrayHasNode(nodes, req.nodeA) || !arrayHasNode(nodes, req.nodeB)) {
-            const String msg = String("[MachineSpec] Группа ") + req.name +
-                               " не может быть проверена: отсутствуют ноды " + req.nodeA + " и/или " + req.nodeB;
+        uint16_t declaredGroupId = 0;
+        bool hasDeclaredGroup = false;
+        JsonObjectConst groupObj = groups[req.name].as<JsonObjectConst>();
+        if (!groupObj.isNull()) {
+            declaredGroupId = parseCanID(groupObj["canID"]);
+            hasDeclaredGroup = declaredGroupId != 0;
+        }
+        if (!hasDeclaredGroup) {
+            const String msg = String("[MachineSpec] required group is missing or invalid: ") + req.name;
             if (req.criticalForMotion) {
                 report.errors.push_back(msg);
                 report.allowMotion = false;
@@ -82,17 +82,11 @@ MachineSpec::Report MachineSpec::validateControllerConfig(JsonObjectConst root) 
             continue;
         }
 
-        uint16_t groupA = 0;
-        uint16_t groupB = 0;
-        String groupNameA;
-        String groupNameB;
-        const bool hasGroupA = collectNodeGroup(groups, req.nodeA, groupA, groupNameA);
-        const bool hasGroupB = collectNodeGroup(groups, req.nodeB, groupB, groupNameB);
-
-        if (!hasGroupA || groupA == 0 || !hasGroupB || groupB == 0 || groupA != groupB) {
-            const String msg = String("[MachineSpec] Обязательная группа ") + req.name +
-                               " требует, чтобы ноды " + req.nodeA + " и " + req.nodeB +
-                               " были в одной и той же ненулевой группе.";
+        const NodeInfo* nodeA = findNode(nodes, req.nodeA);
+        const NodeInfo* nodeB = findNode(nodes, req.nodeB);
+        if (nodeA == nullptr || nodeB == nullptr) {
+            const String msg = String("[MachineSpec] required group ") + req.name +
+                               " needs nodes " + req.nodeA + " and " + req.nodeB;
             if (req.criticalForMotion) {
                 report.errors.push_back(msg);
                 report.allowMotion = false;
@@ -102,19 +96,36 @@ MachineSpec::Report MachineSpec::validateControllerConfig(JsonObjectConst root) 
             continue;
         }
 
-        // collectNodeGroup() возвращает значения только из config.groups, но проверку оставляем явной.
-        bool groupIdDeclared = false;
-        for (JsonPairConst item : groups) {
-            JsonObjectConst groupObj = item.value().as<JsonObjectConst>();
-            if (groupObj.isNull()) continue;
-            if (parseCanID(groupObj["canID"]) == groupA) {
-                groupIdDeclared = true;
-                break;
+        if (nodeA->groupID == 0 || nodeB->groupID == 0 || nodeA->groupID != nodeB->groupID) {
+            const String msg = String("[MachineSpec] required group ") + req.name +
+                               " needs " + req.nodeA + " and " + req.nodeB +
+                               " in the same non-zero group";
+            if (req.criticalForMotion) {
+                report.errors.push_back(msg);
+                report.allowMotion = false;
+            } else {
+                report.warnings.push_back(msg);
             }
+            continue;
         }
-        if (!groupIdDeclared) {
-            const String msg = String("[MachineSpec] Group ID 0x") + String(groupA, HEX) +
-                               " для связи " + req.name + " не объявлен в config.groups.";
+
+        JsonArrayConst groupNodes = groupObj["nodes"];
+        if (!arrayHasNode(groupNodes, req.nodeA) || !arrayHasNode(groupNodes, req.nodeB)) {
+            const String msg = String("[MachineSpec] group ") + req.name +
+                               " must list nodes " + req.nodeA + " and " + req.nodeB;
+            if (req.criticalForMotion) {
+                report.errors.push_back(msg);
+                report.allowMotion = false;
+            } else {
+                report.warnings.push_back(msg);
+            }
+            continue;
+        }
+
+        if (nodeA->groupID != declaredGroupId) {
+            const String msg = String("[MachineSpec] required group ") + req.name +
+                               " mismatch: declared=0x" + String(declaredGroupId, HEX) +
+                               ", nodes=0x" + String(nodeA->groupID, HEX);
             if (req.criticalForMotion) {
                 report.errors.push_back(msg);
                 report.allowMotion = false;
@@ -128,7 +139,20 @@ MachineSpec::Report MachineSpec::validateControllerConfig(JsonObjectConst root) 
 }
 
 MachineSpec::Report MachineSpec::validateDeviceConfig(JsonObjectConst device) const {
-    return validateControllerConfig(device);
+    JsonArrayConst nodeArray = device["nodes"];
+    if (nodeArray.isNull()) {
+        return Report{};
+    }
+
+    std::vector<NodeInfo> nodeInfos;
+    for (JsonVariantConst item : nodeArray) {
+        const char* raw = item.as<const char*>();
+        if (raw == nullptr || raw[0] == '\0') continue;
+        NodeInfo info;
+        info.name = raw;
+        nodeInfos.push_back(info);
+    }
+    return validateControllerConfig(device, nodeInfos);
 }
 
 uint16_t MachineSpec::parseCanID(JsonVariantConst value) {
@@ -159,30 +183,11 @@ bool MachineSpec::arrayHasNode(JsonArrayConst nodes, const String& nodeName) {
     return false;
 }
 
-bool MachineSpec::collectNodeGroup(
-    JsonObjectConst groupsObj,
-    const String& nodeName,
-    uint16_t& groupID,
-    String& groupName
-) {
-    groupID = 0;
-    groupName = "";
-    if (groupsObj.isNull()) return false;
-
-    for (JsonPairConst item : groupsObj) {
-        JsonObjectConst groupObj = item.value().as<JsonObjectConst>();
-        if (groupObj.isNull()) continue;
-
-        JsonArrayConst groupNodes = groupObj["nodes"];
-        if (!arrayHasNode(groupNodes, nodeName)) continue;
-
-        const uint16_t parsedID = parseCanID(groupObj["canID"]);
-        if (parsedID == 0) continue;
-
-        groupID = parsedID;
-        groupName = String(item.key().c_str());
-        return true;
+const MachineSpec::NodeInfo* MachineSpec::findNode(const std::vector<NodeInfo>& nodes, const String& nodeName) {
+    for (const NodeInfo& node : nodes) {
+        if (node.name == nodeName) {
+            return &node;
+        }
     }
-
-    return false;
+    return nullptr;
 }

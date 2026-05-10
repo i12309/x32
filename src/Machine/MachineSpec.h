@@ -9,6 +9,12 @@
 // Спецификация логической CAN-топологии для типа станка.
 class MachineSpec {
 public:
+    struct NodeInfo {
+        String name;
+        uint16_t canID = 0;
+        uint16_t groupID = 0;
+    };
+
     // Обязательная нода, которая должна быть объявлена в корневом config.nodes.
     struct NodeRequirement {
         String name;
@@ -50,7 +56,7 @@ public:
 
     // Проверка логической топологии в корневом config:
     // обязательные ноды и обязательные групповые связи.
-    Report validateControllerConfig(JsonObjectConst root) const;
+    Report validateControllerConfig(JsonObjectConst root, const std::vector<NodeInfo>& nodes) const;
 
     // Совместимость со старым кодом, где проверка вызывалась для config.device.
     // Сейчас проксируем в validateControllerConfig() для переданного объекта.
@@ -67,11 +73,6 @@ private:
 
     static uint16_t parseCanID(JsonVariantConst value);
     static bool arrayHasNode(JsonArrayConst nodes, const String& nodeName);
-    static bool collectNodeGroup(
-        JsonObjectConst groupsObj,
-        const String& nodeName,
-        uint16_t& groupID,
-        String& groupName
-    );
+    static const NodeInfo* findNode(const std::vector<NodeInfo>& nodes, const String& nodeName);
 };
 

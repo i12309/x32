@@ -23,14 +23,11 @@ struct Options {
 namespace detail {
 
 void fillSettings(JsonObject settings, bool accessPoint);
-bool fillDevice(JsonObject device, Catalog::MachineType type);
 void fillTuning(JsonObject tuning);
-void fillTestProfiles(JsonArray profiles);
-void fillTestTasks(JsonArray tasks);
 
 } // namespace detail
 
 bool build(JsonDocument& doc, const Options& options);
-bool buildData(JsonDocument& doc, bool withTestData = false);
+bool buildNode(JsonDocument& doc, Catalog::MachineType machine, const String& nodeName);
 
 } // namespace ConfigDefaults

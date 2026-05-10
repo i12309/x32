@@ -1,9 +1,10 @@
-#pragma once
+﻿#pragma once
 
 #include <Arduino.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <string>
+#include <vector>
 
 #include "config.h"
 #include "Machine/MachineSpec.h"
@@ -193,9 +194,6 @@ private:
         String group;
         String mac;
         uint16_t canID = 0;
-
-        // Настройки CAN-шины головного устройства из секции config.CAN.
-        // Здесь только параметры транспорта; логика BOOT/передачи конфига будет отдельным слоем.
         struct CanBusConfig {
             int tx = 17;
             int rx = 18;
@@ -203,34 +201,311 @@ private:
             uint32_t ackTimeoutMs = 150;
             uint32_t checkTimeoutMs = 300;
         };
-
+        struct GroupConfig {
+            // Логическая CAN-группа из config.groups.<NAME>.
+            String name;
+            uint16_t id = 0;
+            std::vector<String> nodes;
+        };
+        struct NodeConfig {
+            // Кэш envelope-данных ноды после валидации /node_<NAME>.json.
+            String name;
+            String path;
+            String mac;
+            uint16_t canID = 0;
+            uint16_t groupID = 0;
+            String payload;
+        };
         CanBusConfig can;
-
-        // Разбирает CAN ID из JSON: поддерживает число или строку вида "0x201".
-        // Ограничение 0x7FF соответствует стандартному 11-битному CAN identifier.
-        static uint16_t parseCanID(JsonVariantConst value) {
-
-            if (value.isNull()) return 0;
-
+        std::vector<GroupConfig> groups;
+        std::vector<NodeConfig> nodes;
+        static bool parseCanIDField(JsonVariantConst value, uint16_t& out, bool allowZero = false) {
+            out = 0;
+            if (value.isNull()) return allowZero;
             if (value.is<int>()) {
-                int raw = value.as<int>();
-                if (raw < 0 || raw > 0x7FF) return 0;
-                return static_cast<uint16_t>(raw);
+                const int raw = value.as<int>();
+                if (raw < 0 || raw > 0x7FF) return false;
+                if (!allowZero && raw == 0) return false;
+                out = static_cast<uint16_t>(raw);
+                return true;
             }
-
             const char* text = value | "";
-            if (text == nullptr || text[0] == '\0') return 0;
-
+            if (text == nullptr || text[0] == '\0') return false;
             char* end = nullptr;
-            unsigned long raw = strtoul(text, &end, 0);
-            if (end == text || *end != '\0' || raw > 0x7FFUL) return 0;
-
-            return static_cast<uint16_t>(raw);
+            const unsigned long raw = strtoul(text, &end, 0);
+            if (end == text || *end != '\0' || raw > 0x7FFUL) return false;
+            if (!allowZero && raw == 0) return false;
+            out = static_cast<uint16_t>(raw);
+            return true;
         }
+        static uint16_t parseCanID(JsonVariantConst value) {
+            uint16_t out = 0;
+            return parseCanIDField(value, out, true) ? out : 0;
+        }
+        static bool isDefaultMac(const String& value) {
+            return value == "00:00:00:00";
+        }
+        static bool isAllowedBitrate(int bitrate) {
+            return bitrate == 125 || bitrate == 250 || bitrate == 500 || bitrate == 1000;
+        }
+        static String nodePath(const String& nodeName) {
+            return String("/node_") + nodeName + ".json";
+        }
+        bool hasGroupID(uint16_t id) const {
+            if (id == 0) return false;
+            for (const GroupConfig& groupCfg : groups) {
+                if (groupCfg.id == id) return true;
+            }
+            return false;
+        }
+        bool groupHasNode(uint16_t id, const String& nodeName) const {
+            if (id == 0) return false;
+            for (const GroupConfig& groupCfg : groups) {
+                if (groupCfg.id != id) continue;
+                for (const String& member : groupCfg.nodes) {
+                    if (member == nodeName) return true;
+                }
+                return false;
+            }
+            return false;
+        }
+        bool findNode(const String& nodeName, NodeConfig& out) const {
+            for (const NodeConfig& node : nodes) {
+                if (node.name == nodeName) {
+                    out = node;
+                    return true;
+                }
+            }
+            return false;
+        }
+        bool nodeAddress(const char* nodeName, uint16_t& out) const {
+            out = 0;
+            if (nodeName == nullptr || nodeName[0] == '\0') return false;
+            for (const NodeConfig& node : nodes) {
+                if (node.name == nodeName) {
+                    out = node.canID;
+                    return out != 0;
+                }
+            }
+            return false;
+        }
+        bool nodeGroup(const char* nodeName, uint16_t& out) const {
+            out = 0;
+            if (nodeName == nullptr || nodeName[0] == '\0') return false;
+            for (const NodeConfig& node : nodes) {
+                if (node.name == nodeName) {
+                    out = node.groupID;
+                    return out != 0;
+                }
+            }
+            return false;
+        }
+        bool loadGroups(JsonObjectConst groupsObj) {
+            // Формат ожидается строго как:
+            // "groups": { "FEED": { "canID": "0x220", "nodes": ["PAPER","THROW"] } }
+            groups.clear();
+            if (groupsObj.isNull()) return true;
+            for (JsonPairConst item : groupsObj) {
+                String groupName = item.key().c_str();
+                groupName.trim();
+                if (groupName.length() == 0) {
+                    Log::E("[Config] groups contains empty name");
+                    return false;
+                }
 
-        // Загружает только CAN-секцию головного конфига.
+                JsonObjectConst groupObj = item.value().as<JsonObjectConst>();
+                if (groupObj.isNull()) {
+                    Log::E("[Config] group '%s' must be an object", groupName.c_str());
+                    return false;
+                }
+
+                uint16_t groupId = 0;
+                if (!parseCanIDField(groupObj["canID"], groupId, false)) {
+                    Log::E("[Config] group '%s' has invalid CAN ID", groupName.c_str());
+                    return false;
+                }
+
+                JsonArrayConst groupNodes = groupObj["nodes"];
+                if (groupNodes.isNull() || groupNodes.size() == 0) {
+                    Log::E("[Config] group '%s' must contain non-empty nodes array", groupName.c_str());
+                    return false;
+                }
+                for (const GroupConfig& existed : groups) {
+                    if (existed.name == groupName) {
+                        Log::E("[Config] duplicate group name in config.groups: %s", groupName.c_str());
+                        return false;
+                    }
+                    if (existed.id == groupId) {
+                        Log::E("[Config] duplicate group CAN ID 0x%s: %s and %s",
+                               String(groupId, HEX).c_str(),
+                               existed.name.c_str(),
+                               groupName.c_str());
+                        return false;
+                    }
+                }
+                GroupConfig groupCfg;
+                groupCfg.name = groupName;
+                groupCfg.id = groupId;
+                for (JsonVariantConst nodeItem : groupNodes) {
+                    if (!nodeItem.is<const char*>()) {
+                        Log::E("[Config] group '%s' has non-string node entry", groupName.c_str());
+                        return false;
+                    }
+                    String nodeName = nodeItem.as<String>();
+                    nodeName.trim();
+                    if (nodeName.length() == 0) {
+                        Log::E("[Config] group '%s' has empty node name", groupName.c_str());
+                        return false;
+                    }
+                    groupCfg.nodes.push_back(nodeName);
+                }
+                groups.push_back(groupCfg);
+            }
+            return true;
+        }
+        bool loadNodeFile(const String& expectedName, NodeConfig& out) {
+            const String path = nodePath(expectedName);
+            if (!LittleFS.exists(path)) {
+                Log::E("[Config] node file is missing: %s", path.c_str());
+                return false;
+            }
+            File file = LittleFS.open(path, "r");
+            if (!file) {
+                Log::E("[Config] failed to open node file: %s", path.c_str());
+                return false;
+            }
+            if (file.size() == 0) {
+                file.close();
+                Log::E("[Config] node file is empty: %s", path.c_str());
+                return false;
+            }
+            JsonDocument nodeDoc;
+            DeserializationError error = deserializeJson(nodeDoc, file);
+            file.close();
+            if (error) {
+                Log::E("[Config] failed to parse node file '%s': %s", path.c_str(), error.c_str());
+                return false;
+            }
+            const String machineName = nodeDoc["machine"] | "";
+            if (machineName != "NODE") {
+                Log::E("[Config] node %s has machine='%s', expected 'NODE'",
+                       path.c_str(),
+                       machineName.c_str());
+                return false;
+            }
+            String nodeName = nodeDoc["name"] | "";
+            nodeName.trim();
+            if (nodeName.length() == 0) {
+                Log::E("[Config] node %s has empty name", path.c_str());
+                return false;
+            }
+            if (nodeName != expectedName) {
+                Log::E("[Config] node name mismatch: list='%s', file='%s'",
+                       expectedName.c_str(),
+                       nodeName.c_str());
+                return false;
+            }
+            if (!nodeDoc["mac"].is<const char*>()) {
+                Log::E("[Config] node %s has invalid mac field", path.c_str());
+                return false;
+            }
+            String nodeMac = nodeDoc["mac"].as<String>();
+            nodeMac.trim();
+            uint16_t nodeCanID = 0;
+            if (!parseCanIDField(nodeDoc["canID"], nodeCanID, false)) {
+                Log::E("[Config] node %s has invalid canID", path.c_str());
+                return false;
+            }
+            uint16_t nodeGroupID = 0;
+            if (!parseCanIDField(nodeDoc["group"], nodeGroupID, true)) {
+                Log::E("[Config] node %s has invalid group", path.c_str());
+                return false;
+            }
+            if (nodeGroupID != 0 && !hasGroupID(nodeGroupID)) {
+                Log::E("[Config] node %s uses group 0x%s but config.groups does not declare it",
+                       expectedName.c_str(),
+                       String(nodeGroupID, HEX).c_str());
+                return false;
+            }
+            if (nodeGroupID != 0 && !groupHasNode(nodeGroupID, nodeName)) {
+                Log::E("[Config] node %s uses group 0x%s but is not listed in group nodes[]",
+                       expectedName.c_str(),
+                       String(nodeGroupID, HEX).c_str());
+                return false;
+            }
+            out.name = nodeName;
+            out.path = path;
+            out.mac = nodeMac;
+            out.canID = nodeCanID;
+            out.groupID = nodeGroupID;
+            serializeJson(nodeDoc, out.payload);
+            return true;
+        }
+        bool loadNodes(JsonArrayConst nodeArray) {
+            nodes.clear();
+            if (nodeArray.isNull() || nodeArray.size() == 0) {
+                Log::E("[Config] nodes must be a non-empty array");
+                return false;
+            }
+            std::vector<String> expectedNames;
+            for (JsonVariantConst item : nodeArray) {
+                if (!item.is<const char*>()) {
+                    Log::E("[Config] nodes array must contain only strings");
+                    return false;
+                }
+                String nodeName = item.as<String>();
+                nodeName.trim();
+                if (nodeName.length() == 0) {
+                    Log::E("[Config] nodes array contains empty name");
+                    return false;
+                }
+                for (const String& existed : expectedNames) {
+                    if (existed == nodeName) {
+                        Log::E("[Config] duplicate node name in config.nodes: %s", nodeName.c_str());
+                        return false;
+                    }
+                }
+                expectedNames.push_back(nodeName);
+            }
+            for (const String& nodeName : expectedNames) {
+                NodeConfig nodeCfg;
+                if (!loadNodeFile(nodeName, nodeCfg)) return false;
+                nodes.push_back(nodeCfg);
+            }
+            for (size_t i = 0; i < nodes.size(); ++i) {
+                const NodeConfig& current = nodes[i];
+                for (size_t j = i + 1; j < nodes.size(); ++j) {
+                    const NodeConfig& next = nodes[j];
+                    if (current.canID == next.canID) {
+                        Log::E("[Config] duplicate CAN ID 0x%s: %s and %s",
+                               String(current.canID, HEX).c_str(),
+                               current.name.c_str(),
+                               next.name.c_str());
+                        return false;
+                    }
+                    if (!isDefaultMac(current.mac) &&
+                        !isDefaultMac(next.mac) &&
+                        current.mac == next.mac) {
+                        Log::E("[Config] duplicate node MAC '%s': %s and %s",
+                               current.mac.c_str(),
+                               current.name.c_str(),
+                               next.name.c_str());
+                        return false;
+                    }
+                }
+                if (hasGroupID(current.canID)) {
+                    Log::E("[Config] node %s CAN ID 0x%s conflicts with group ID",
+                           current.name.c_str(),
+                           String(current.canID, HEX).c_str());
+                    return false;
+                }
+            }
+            return true;
+        }
         bool loadCanConfig() {
             can = CanBusConfig();
+            groups.clear();
+            nodes.clear();
             JsonObjectConst canObj = doc["CAN"];
             if (!canObj.isNull()) {
                 can.tx = canObj["tx"] | can.tx;
@@ -242,99 +517,128 @@ private:
                     can.checkTimeoutMs = timeouts["check"] | can.checkTimeoutMs;
                 }
             }
-
+            if (!isAllowedBitrate(can.bitrate)) {
+                Log::E("[Config] unsupported CAN bitrate: %d", can.bitrate);
+                return false;
+            }
+            if (!loadGroups(doc["groups"].as<JsonObjectConst>())) return false;
+            if (!loadNodes(doc["nodes"].as<JsonArrayConst>())) return false;
+            std::vector<MachineSpec::NodeInfo> nodeInfos;
+            nodeInfos.reserve(nodes.size());
+            for (const NodeConfig& node : nodes) {
+                MachineSpec::NodeInfo info;
+                info.name = node.name;
+                info.canID = node.canID;
+                info.groupID = node.groupID;
+                nodeInfos.push_back(info);
+            }
+            MachineSpec spec = MachineSpec::get(Catalog::getMachine(machine));
+            MachineSpec::Report report =
+                spec.validateControllerConfig(doc.as<JsonObjectConst>(), nodeInfos);
+            for (const String& warning : report.warnings) {
+                Log::D("%s", warning.c_str());
+            }
+            for (const String& error : report.errors) {
+                Log::E("%s", error.c_str());
+            }
+            return !report.hasErrors();
+        }
+        bool ensureNodeFiles(Catalog::MachineType machineType, bool overwriteExisting) {
             JsonArrayConst nodeArray = doc["nodes"];
-            if (nodeArray.isNull()) {
-                return true;
+            for (JsonVariantConst item : nodeArray) {
+                if (!item.is<const char*>()) continue;
+                String nodeName = item.as<String>();
+                nodeName.trim();
+                if (nodeName.length() == 0) continue;
+
+                const String path = nodePath(nodeName);
+                if (!overwriteExisting && LittleFS.exists(path)) continue;
+
+                JsonDocument nodeDoc;
+                if (!ConfigDefaults::buildNode(nodeDoc, machineType, nodeName)) {
+                    Log::E("[Config] failed to build default node config: %s", nodeName.c_str());
+                    return false;
+                }
+
+                File nodeFile = LittleFS.open(path, "w");
+                if (!nodeFile) {
+                    Log::E("[Config] failed to create node config file: %s", path.c_str());
+                    return false;
+                }
+                serializeJsonPretty(nodeDoc, nodeFile);
+                nodeFile.close();
             }
             return true;
         }
-
-        // записать дефолтный config.json
         bool writeDefault() {
             ConfigDefaults::Options options;
             if (!ConfigDefaults::build(doc, options)) {
-                Log::D("Failed to build default config from MachineSpec");
+                Log::D("Ошибка сборки дефолтного config из MachineSpec");
                 return false;
             }
             machine = Catalog::machineName(options.machine);
             configVersion = options.configVersion;
             name = options.name;
             group = options.group;
-
             if (!settings.load(doc)) {
                 Log::D("Ошибка загрузки settings из дефолтного config");
                 return false;
             }
-
             File file = LittleFS.open(CONFIG_PATH, "w");
             if (!file) {
-                Log::D("Ошибка создания файла");
+                Log::D("Ошибка создания config файла");
                 return false;
             }
             serializeJsonPretty(doc, file);
             file.close();
-            return true;
+            return ensureNodeFiles(options.machine, true);
         }
-
-        // открыть, если его нет, то создать по умолчанию (если разрешено)
         bool open(File& file, bool createDefaultIfMissing){
             if (!LittleFS.exists(CONFIG_PATH)) {
                 if (!createDefaultIfMissing) {
                     Log::D("Файл '%s' не найден", CONFIG_PATH.c_str());
                     return false;
                 }
-                Log::D("Файл не найден, создаем из дефолтного");
+                Log::D("Файл config отсутствует, создаем дефолтный");
                 if (!writeDefault()) return false;
             }
-
             file = LittleFS.open(CONFIG_PATH, "r");
             if (!file) {
                 Log::D("Ошибка открытия файла '%s'", CONFIG_PATH.c_str());
                 return false;
             }
-
             if (file.size() == 0) {
                 file.close();
                 if (!createDefaultIfMissing) {
                     Log::D("Файл '%s' пустой", CONFIG_PATH.c_str());
                     return false;
                 }
-                Log::D("Файл пустой, создаем из дефолтного");
+                Log::D("Файл config пустой, создаем дефолтный");
                 if (!writeDefault()) return false;
                 file = LittleFS.open(CONFIG_PATH, "r");
                 if (!file || file.size() == 0) {
-                    Log::D("Ошибка открытия после создания");
+                    Log::D("Ошибка открытия дефолтного config после создания");
                     return false;
                 }
             }
             return true;
         }
-
-        // Единый метод загрузки конфигурации
         bool load(bool createDefaultIfMissing = true) {
             Log::D(__func__);
-
             File file;
             if (!open(file, createDefaultIfMissing)) return false;
-
             DeserializationError error = deserializeJson(doc, file);
             file.close();
-
             if (error) {
                 Log::D("Ошибка парсинга config.json: %s", error.c_str());
                 return false;
             }
-
-            // Загрузка переменной machine
             machine = doc["machine"] | "UNKNOWN";
             configVersion = doc["config_version"] | 0;
             name = doc["name"] | "ESP32";
             group = doc["group"] | "";
             mac = doc["mac"] | "";
             canID = parseCanID(doc["canID"]);
-
-            // Загрузка основных параметров
             if (!settings.load(doc)) {
                 Log::D("Ошибка загрузки секции settings");
                 return false;
@@ -343,34 +647,26 @@ private:
                 Log::E("[Config] CAN config validation failed");
                 return false;
             }
-
             return true;
         }
-
-        // сохранение
         bool save() {
-            // Сохраняем переменные из корня config
             doc["machine"] = machine;
             doc["config_version"] = configVersion;
             doc["name"] = name;
             doc["group"] = group;
             doc["mac"] = mac;
             doc["canID"] = String("0x") + String(canID, HEX);
-
             JsonObject settingsObj = doc["settings"];
             settings.serialize(settingsObj);
-
             File file = LittleFS.open(CONFIG_PATH, "w");
             if (!file) {
-                Log::D("Ошибка записи файла");
+                Log::D("Ошибка записи config файла");
                 return false;
             }
             serializeJsonPretty(doc, file);
             file.close();
-            return true;
+            return ensureNodeFiles(Catalog::getMachine(machine), false);
         }
-
-        // Отладка: вывод конфига в терминал
         void print_config() {
             if (Log::level == 1){
                 Log::L("========== CONFIG DEBUG ==========");
@@ -432,3 +728,5 @@ private: struct Settings {
     };
 public: static Settings settings;
 };
+
+
