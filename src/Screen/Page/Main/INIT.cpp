@@ -55,7 +55,7 @@ bool buildConfig(Catalog::MachineType machine, const String& group, const String
     Core::config.group = group;
 
     if (!Core::settings.load(Core::config.doc)) return false;
-    if (!ConfigDefaults::buildData(Core::data.doc, withTestData)) return false;
+    //if (!ConfigDefaults::buildData(Core::data.doc, withTestData)) return false;
     if (!Core::data.save()) return false;
 
     return Core::config.save();

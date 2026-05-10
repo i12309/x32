@@ -6,15 +6,23 @@
 
 #include "Catalog.h"
 
-// Каркас спецификации станка.
-// Задача класса: хранить эталонный состав device для конкретного MachineType,
-// уметь валидировать конфиг и проверять факт создания объектов после загрузки.
+// Спецификация логической CAN-топологии для типа станка.
 class MachineSpec {
 public:
-    // Описание одного обязательного элемента в секции device.
-    struct Requirement {
-        String name;             // Имя элемента, например "PAPER" или "MCP0".
-        bool criticalForMotion;  // Если true и элемент отсутствует - движение моторами запрещаем.
+    // Обязательная нода, которая должна быть объявлена в корневом config.nodes.
+    struct NodeRequirement {
+        String name;
+        bool criticalForMotion;
+    };
+
+    // Логическая проверка обязательной группы.
+    // Ожидаем, что обе ноды находятся в одном и том же ненулевом groupID,
+    // полученном из секции config.groups.
+    struct GroupRequirement {
+        String name;
+        String nodeA;
+        String nodeB;
+        bool criticalForMotion;
     };
 
     // Итог проверки.
@@ -34,36 +42,36 @@ public:
 
     Catalog::MachineType type() const { return type_; }
 
-    // Построить дефолтный блок device по спецификации станка.
-    // Каркасно: заполняем только структуру и базовые поля, без тонкой настройки всех параметров.
+    // Построить дефолтный корневой CAN-каркас по спецификации станка.
+    void fillControllerDefaults(JsonObject root) const;
+
+    // Совместимость со старым кодом до полной миграции ConfigDefaults.
     void fillDeviceDefaults(JsonObject device) const;
 
-    // Проверка структуры и обязательных элементов внутри device из config.json.
-    // Проверяем именно наличие секций/элементов. Глубокую валидацию атрибутов добавим следующим шагом.
+    // Проверка логической топологии в корневом config:
+    // обязательные ноды и обязательные групповые связи.
+    Report validateControllerConfig(JsonObjectConst root) const;
+
+    // Совместимость со старым кодом, где проверка вызывалась для config.device.
+    // Сейчас проксируем в validateControllerConfig() для переданного объекта.
     Report validateDeviceConfig(JsonObjectConst device) const;
 
 private:
     Catalog::MachineType type_ = Catalog::MachineType::UNKNOWN;
 
-    std::vector<Requirement> i2c_;
-    std::vector<Requirement> motors_;
-    std::vector<Requirement> sensors_;
-    std::vector<Requirement> optical_;
-    std::vector<Requirement> clutchs_;
-    std::vector<Requirement> switchs_;
-    std::vector<Requirement> buttons_;
-    std::vector<Requirement> encoders_;
+    std::vector<NodeRequirement> requiredNodes_;
+    std::vector<GroupRequirement> requiredGroups_;
 
     static MachineSpec makeUnknown();
     static MachineSpec makeA();
 
-    void fillDefaultsA(JsonObject device) const;
-
-    static void validateSectionConfig(
-        const char* sectionName,
-        JsonObjectConst sectionObj,
-        const std::vector<Requirement>& required,
-        Report& report
+    static uint16_t parseCanID(JsonVariantConst value);
+    static bool arrayHasNode(JsonArrayConst nodes, const String& nodeName);
+    static bool collectNodeGroup(
+        JsonObjectConst groupsObj,
+        const String& nodeName,
+        uint16_t& groupID,
+        String& groupName
     );
 };
 

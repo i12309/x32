@@ -30,5 +30,10 @@
     }
   },
   "nodes": ["TABLE","PAPER","GUILLOTINE","THROW"],
-  "groups":[["PAPER","THROW"]]
+  "groups":{
+    "FEED": {
+      "canID":"0x220",
+      "nodes":["PAPER","THROW"]
+    }
+  }
 }
