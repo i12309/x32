@@ -242,6 +242,16 @@ private:
         if (canBoot.discover(canBus)) {
             Log::D("BOOT: %s", "CAN config transfer");
             if (canBoot.configure(canBus)) {
+                Log::D("BOOT: %s", "CAN node check");
+                CanNodeCheck& nodeCheck = CanNodeCheck::instance();
+                if (nodeCheck.checkAfterBoot(canBus, *App::cfg().checkSystem == 1)) {
+                    return true;
+                }
+                Log::E(" === ERROR CAN Node Check: %s", nodeCheck.lastError().c_str());
+                App::diag().addFatal(State::ErrorCode::CONFIG_ERROR,
+                                     "CAN node check failed",
+                                     nodeCheck.lastError());
+                requestAbort(State::Type::ERROR);
                 return true;
             }
             Log::E(" === ERROR CAN Config Transfer: %s", canBoot.lastError().c_str());
