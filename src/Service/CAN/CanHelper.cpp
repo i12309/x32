@@ -3,6 +3,11 @@
 #include "Core.h"
 #include "Service/Log.h"
 
+CanHelper& CanHelper::instance() {
+    static CanHelper helper;
+    return helper;
+}
+
 bool CanHelper::nodeAddress(const char* nodeName, uint16_t& out) {
     if (nodeName == nullptr || nodeName[0] == '\0') {
         return setError("Empty CAN node name");

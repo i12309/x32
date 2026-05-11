@@ -13,7 +13,7 @@ public:
         App::plan().clear();
         Screen::Error::instance().show();
         // При ошибке останавливаем все моторы!
-        CAN::instance().stopAll();
+        CanScenario::instance().stopAll();
     }
 
     State* run() override {return this;}

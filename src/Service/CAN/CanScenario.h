@@ -7,10 +7,17 @@
 #include "Service/CAN/CanHelper.h"
 #include "protocols/scenario/Scenario.h"
 
-struct ScenarioResult;
+struct ScenarioResult {
+    bool ok = false;
+    Scenario::Status status = Scenario::Status::Error;
+    uint8_t remoteError = 0;
+    int32_t value = 0;
+};
 
 class CanScenario {
 public:
+    static CanScenario& instance();
+
     CanScenario(CanBus& bus, CanHelper& helper);
 
     bool checkAll();

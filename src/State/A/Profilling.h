@@ -49,15 +49,17 @@ private:
 
     static bool FeedNext() {
         Log::D(__func__);
-        if (CAN::instance().paperMoveSteps(Data::tuning.PROFILE_WIDTH_step, true)) return true;
-        App::diag().addFatal(State::ErrorCode::PAPER, "PROFILE paper move failed", CAN::instance().lastError());
+        CanScenario& can = CanScenario::instance();
+        if (can.paperMoveSteps(Data::tuning.PROFILE_WIDTH_step, true)) return true;
+        App::diag().addFatal(State::ErrorCode::PAPER, "PROFILE paper move failed", can.lastError());
         return false;
     }
 
     static bool FeedOut() {
         Log::D(__func__);
-        if (CAN::instance().paperMoveSteps(10000, false)) return true;
-        App::diag().addFatal(State::ErrorCode::PAPER, "PROFILE feed out failed", CAN::instance().lastError());
+        CanScenario& can = CanScenario::instance();
+        if (can.paperMoveSteps(10000, false)) return true;
+        App::diag().addFatal(State::ErrorCode::PAPER, "PROFILE feed out failed", can.lastError());
         return false;
     }
 

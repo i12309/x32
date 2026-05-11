@@ -7,12 +7,14 @@
 
 class CanBoot {
 public:
+    static CanBoot& instance();
+
+    bool discover();
     bool discover(CanBus& bus);
     String lastError() const { return lastError_; }
 
 private:
     bool setError(const String& message);
 
-    CanHelper helper_;
     String lastError_;
 };

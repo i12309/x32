@@ -22,6 +22,15 @@ uint32_t bootDiscoveryWindowMs() {
 
 } // namespace
 
+CanBoot& CanBoot::instance() {
+    static CanBoot boot;
+    return boot;
+}
+
+bool CanBoot::discover() {
+    return discover(CanBus::instance());
+}
+
 bool CanBoot::discover(CanBus& bus) {
     if (!bus.begin()) return setError(bus.lastError());
 
@@ -39,7 +48,9 @@ bool CanBoot::discover(CanBus& bus) {
            static_cast<unsigned>(nodeCount),
            static_cast<unsigned>(windowMs));
 
-    while (!helper_.allBootNodesAssigned(assigned)) {
+    CanHelper& helper = CanHelper::instance();
+
+    while (!helper.allBootNodesAssigned(assigned)) {
         const uint32_t elapsed = millis() - startedAt;
         if (elapsed >= windowMs) break;
 
@@ -51,7 +62,7 @@ bool CanBoot::discover(CanBus& bus) {
             continue;
         }
 
-        const String mac = helper_.macToString(boot.mac);
+        const String mac = helper.macToString(boot.mac);
         if (boot.protocolVersion != Mgmt::PROTOCOL_VERSION) {
             return setError(String("CAN boot discovery failed: incompatible Mgmt protocol from MAC ") +
                             mac + " version=" + String(boot.protocolVersion) +
@@ -100,9 +111,9 @@ bool CanBoot::discover(CanBus& bus) {
                String(nodeCanID, HEX).c_str());
     }
 
-    if (!helper_.allBootNodesAssigned(assigned)) {
+    if (!helper.allBootNodesAssigned(assigned)) {
         return setError(String("CAN boot discovery timeout, missing nodes: ") +
-                        helper_.missingBootNodes(assigned));
+                        helper.missingBootNodes(assigned));
     }
 
     Log::D("[CAN] boot discovery complete");

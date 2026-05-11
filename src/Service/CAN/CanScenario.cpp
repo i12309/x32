@@ -3,7 +3,6 @@
 #include <cmath>
 
 #include "Core.h"
-#include "Service/CAN/CAN.h"
 #include "Service/Log.h"
 
 namespace {
@@ -15,6 +14,11 @@ constexpr uint32_t kCutTimeoutMs = 10000;
 constexpr uint32_t kCheckTimeoutMs = 300;
 
 } // namespace
+
+CanScenario& CanScenario::instance() {
+    static CanScenario scenario(CanBus::instance(), CanHelper::instance());
+    return scenario;
+}
 
 CanScenario::CanScenario(CanBus& bus, CanHelper& helper)
     : bus_(bus), helper_(helper) {}

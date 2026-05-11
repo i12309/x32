@@ -10,6 +10,11 @@ constexpr int kCanBitrateKbps = 500;
 
 } // namespace
 
+CanBus& CanBus::instance() {
+    static CanBus bus;
+    return bus;
+}
+
 bool CanBus::begin() {
     if (ready_) return true;
 

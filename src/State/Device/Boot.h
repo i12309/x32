@@ -237,13 +237,14 @@ private:
 
     static bool InitCAN() {
         Log::D("BOOT: %s", "CAN boot discovery");
-        if (CAN::instance().bootDiscovery()) {
+        CanBoot& canBoot = CanBoot::instance();
+        if (canBoot.discover()) {
             return true;
         }
-        Log::E(" === ERROR CAN Boot Discovery: %s", CAN::instance().lastError().c_str());
+        Log::E(" === ERROR CAN Boot Discovery: %s", canBoot.lastError().c_str());
         App::diag().addFatal(State::ErrorCode::CONFIG_ERROR,
                              "CAN boot discovery failed",
-                             CAN::instance().lastError());
+                             canBoot.lastError());
         requestAbort(State::Type::ERROR);
         return true;
     }

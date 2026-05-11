@@ -8,6 +8,8 @@
 
 class CanBus {
 public:
+    static CanBus& instance();
+
     bool begin();
     bool isReady() const { return ready_; }
     canfw::Esp32TwaiBus& bus();

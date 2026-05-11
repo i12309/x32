@@ -7,6 +7,8 @@
 
 class CanHelper {
 public:
+    static CanHelper& instance();
+
     bool nodeAddress(const char* nodeName, uint16_t& out);
     bool nodeGroup(const char* nodeName, uint16_t& out);
     bool feedGroup(uint16_t& out);
