@@ -3,14 +3,9 @@
   "machine": "NODE",
   "name": "TABLE",
   "group": "0x000",
-  "mac":"00:00:00:00",
+  "mac":"00:00:00:01",
   "canID":"0x201",
   "settings": {},
-  "CAN":{
-    "tx": 6,
-    "rx": 7,
-    "bitrate": 500
-  },
   "device":{
     "motors": {
         "TABLE": {

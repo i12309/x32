@@ -2,10 +2,12 @@
 
 #include <Arduino.h>
 #include <memory>
+#include <vector>
 
 #include "Catalog.h"
 #include "CanNetwork.h"
 #include "backends/esp32/Esp32TwaiBus.h"
+#include "protocols/mgmt/Mgmt.h"
 #include "protocols/scenario/Scenario.h"
 
 // Результат выполнения удаленного сценария на ноде.
@@ -23,6 +25,7 @@ public:
 
     bool begin();
     bool isReady() const { return ready_; }
+    bool bootDiscovery();
 
     bool checkAll();
     bool stopAll();
@@ -64,6 +67,9 @@ private:
                       uint32_t timeoutMs,
                       ScenarioResult& out);
     bool checkScenarioNode(uint16_t address, const char* name);
+    String macToString(const Mgmt::MacAddress& mac) const;
+    bool allBootNodesAssigned(const std::vector<bool>& assigned) const;
+    String missingBootNodes(const std::vector<bool>& assigned) const;
     // Возвращает CAN ID ноды по имени из списка config.nodes.
     bool nodeAddress(const char* nodeName, uint16_t& out);
     // Возвращает group ID для синхронного старта PAPER+THROW.
@@ -72,8 +78,8 @@ private:
     bool setError(const String& message);
     int32_t mmToSteps(float mm, float ratioMm, bool& ok);
 
-    // TWAI bus создается после загрузки config.json, потому что пины и bitrate
-    // теперь приходят из секции CAN, а не из compile-time define.
+    // TWAI bus создается после загрузки config.json, но физические параметры шины
+    // остаются константами кода и не читаются из пользовательского конфига.
     std::unique_ptr<canfw::Esp32TwaiBus> bus_;
     std::unique_ptr<canfw::CanNetwork> network_;
     bool ready_ = false;

@@ -194,13 +194,6 @@ private:
         String group;
         String mac;
         uint16_t canID = 0;
-        struct CanBusConfig {
-            int tx = 17;
-            int rx = 18;
-            int bitrate = 500;
-            uint32_t ackTimeoutMs = 150;
-            uint32_t checkTimeoutMs = 300;
-        };
         struct GroupConfig {
             // Логическая CAN-группа из config.groups.<NAME>.
             String name;
@@ -216,7 +209,6 @@ private:
             uint16_t groupID = 0;
             String payload;
         };
-        CanBusConfig can;
         std::vector<GroupConfig> groups;
         std::vector<NodeConfig> nodes;
         static bool parseCanIDField(JsonVariantConst value, uint16_t& out, bool allowZero = false) {
@@ -244,9 +236,6 @@ private:
         }
         static bool isDefaultMac(const String& value) {
             return value == "00:00:00:00";
-        }
-        static bool isAllowedBitrate(int bitrate) {
-            return bitrate == 125 || bitrate == 250 || bitrate == 500 || bitrate == 1000;
         }
         static String nodePath(const String& nodeName) {
             return String("/node_") + nodeName + ".json";
@@ -277,6 +266,34 @@ private:
                 }
             }
             return false;
+        }
+        static String normalizeMac(String value) {
+            value.trim();
+            value.toUpperCase();
+            return value;
+        }
+        bool findNodeByMac(const String& macAddress, NodeConfig& out) const {
+            const String target = normalizeMac(macAddress);
+            if (target.length() == 0 || isDefaultMac(target)) return false;
+            for (const NodeConfig& node : nodes) {
+                if (!isDefaultMac(normalizeMac(node.mac)) &&
+                    normalizeMac(node.mac) == target) {
+                    out = node;
+                    return true;
+                }
+            }
+            return false;
+        }
+        bool nodeBootInfoByMac(const String& macAddress,
+                               String& outName,
+                               uint16_t& outCanID,
+                               bool& outHasPayload) const {
+            NodeConfig node;
+            if (!findNodeByMac(macAddress, node)) return false;
+            outName = node.name;
+            outCanID = node.canID;
+            outHasPayload = node.payload.length() > 0;
+            return true;
         }
         bool nodeAddress(const char* nodeName, uint16_t& out) const {
             out = 0;
@@ -435,7 +452,7 @@ private:
             }
             out.name = nodeName;
             out.path = path;
-            out.mac = nodeMac;
+            out.mac = normalizeMac(nodeMac);
             out.canID = nodeCanID;
             out.groupID = nodeGroupID;
             serializeJson(nodeDoc, out.payload);
@@ -483,11 +500,13 @@ private:
                                next.name.c_str());
                         return false;
                     }
-                    if (!isDefaultMac(current.mac) &&
-                        !isDefaultMac(next.mac) &&
-                        current.mac == next.mac) {
+                    const String currentMac = normalizeMac(current.mac);
+                    const String nextMac = normalizeMac(next.mac);
+                    if (!isDefaultMac(currentMac) &&
+                        !isDefaultMac(nextMac) &&
+                        currentMac == nextMac) {
                         Log::E("[Config] duplicate node MAC '%s': %s and %s",
-                               current.mac.c_str(),
+                               currentMac.c_str(),
                                current.name.c_str(),
                                next.name.c_str());
                         return false;
@@ -502,25 +521,9 @@ private:
             }
             return true;
         }
-        bool loadCanConfig() {
-            can = CanBusConfig();
+        bool loadCanTopologyConfig() {
             groups.clear();
             nodes.clear();
-            JsonObjectConst canObj = doc["CAN"];
-            if (!canObj.isNull()) {
-                can.tx = canObj["tx"] | can.tx;
-                can.rx = canObj["rx"] | can.rx;
-                can.bitrate = canObj["bitrate"] | can.bitrate;
-                JsonObjectConst timeouts = canObj["timeouts_ms"];
-                if (!timeouts.isNull()) {
-                    can.ackTimeoutMs = timeouts["ack"] | can.ackTimeoutMs;
-                    can.checkTimeoutMs = timeouts["check"] | can.checkTimeoutMs;
-                }
-            }
-            if (!isAllowedBitrate(can.bitrate)) {
-                Log::E("[Config] unsupported CAN bitrate: %d", can.bitrate);
-                return false;
-            }
             if (!loadGroups(doc["groups"].as<JsonObjectConst>())) return false;
             if (!loadNodes(doc["nodes"].as<JsonArrayConst>())) return false;
             std::vector<MachineSpec::NodeInfo> nodeInfos;
@@ -643,8 +646,8 @@ private:
                 Log::D("Ошибка загрузки секции settings");
                 return false;
             }
-            if (!loadCanConfig()) {
-                Log::E("[Config] CAN config validation failed");
+            if (!loadCanTopologyConfig()) {
+                Log::E("[Config] CAN topology validation failed");
                 return false;
             }
             return true;

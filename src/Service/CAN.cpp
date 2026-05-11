@@ -12,38 +12,25 @@ constexpr uint32_t kMoveTimeoutMs = 30000;
 constexpr uint32_t kDetectTimeoutMs = 45000;
 constexpr uint32_t kCutTimeoutMs = 10000;
 constexpr uint32_t kCheckTimeoutMs = 300;
+constexpr int kCanTxPin = 17;
+constexpr int kCanRxPin = 18;
+constexpr int kCanBitrateKbps = 500;
 
-// Таймаут короткого ACK берется из config.CAN.timeouts_ms.ack,
-// а constexpr остается только безопасным дефолтом на случай отсутствия поля.
 uint32_t ackTimeoutMs() {
-    const uint32_t value = Core::config.can.ackTimeoutMs;
-    return value > 0 ? value : kAckTimeoutMs;
+    return kAckTimeoutMs;
 }
 
-// Таймаут проверки статуса ноды берется из config.CAN.timeouts_ms.check.
 uint32_t checkTimeoutMs() {
-    const uint32_t value = Core::config.can.checkTimeoutMs;
-    return value > 0 ? value : kCheckTimeoutMs;
+    return kCheckTimeoutMs;
 }
 
-// Переводит человекочитаемое значение bitrate из JSON (500) в enum Can32.
-bool bitrateFromKbps(int kbps, canfw::CanBitrate& out) {
-    switch (kbps) {
-        case 125:
-            out = canfw::CanBitrate::K125;
-            return true;
-        case 250:
-            out = canfw::CanBitrate::K250;
-            return true;
-        case 500:
-            out = canfw::CanBitrate::K500;
-            return true;
-        case 1000:
-            out = canfw::CanBitrate::K1000;
-            return true;
-        default:
-            return false;
-    }
+uint32_t bootDiscoveryWindowMs() {
+    const uint32_t perNode = checkTimeoutMs() * 10;
+    const uint32_t count = Core::config.nodes.empty()
+        ? 1
+        : static_cast<uint32_t>(Core::config.nodes.size());
+    const uint32_t window = perNode * count;
+    return window < 3000 ? 3000 : window;
 }
 
 } // namespace
@@ -58,12 +45,7 @@ CAN::CAN() = default;
 bool CAN::begin() {
     if (ready_) return true;
 
-    canfw::CanBitrate bitrate = canfw::CanBitrate::K500;
-    if (!bitrateFromKbps(Core::config.can.bitrate, bitrate)) {
-        return setError(String("Unsupported CAN bitrate: ") + String(Core::config.can.bitrate));
-    }
-
-    bus_.reset(new canfw::Esp32TwaiBus(Core::config.can.tx, Core::config.can.rx, bitrate));
+    bus_.reset(new canfw::Esp32TwaiBus(kCanTxPin, kCanRxPin, canfw::CanBitrate::K500));
     network_.reset(new canfw::CanNetwork(*bus_));
 
     ready_ = bus_->begin();
@@ -72,9 +54,112 @@ bool CAN::begin() {
     }
 
     Log::D("[CAN] started: TX=%d RX=%d bitrate=%d",
-           Core::config.can.tx,
-           Core::config.can.rx,
-           Core::config.can.bitrate);
+           kCanTxPin,
+           kCanRxPin,
+           kCanBitrateKbps);
+    return true;
+}
+
+bool CAN::bootDiscovery() {
+    // CAN запускается здесь с фиксированными пинами и bitrate, чтобы config.json не мог менять физику шины.
+    if (!begin()) return false;
+
+    // Discovery имеет смысл только если головной конфиг уже содержит ожидаемые ноды.
+    const size_t nodeCount = Core::config.nodes.size();
+    if (nodeCount == 0) {
+        return setError("CAN boot discovery failed: nodes list is empty");
+    }
+
+    // Mgmt работает напрямую поверх шины: на этом этапе у нод еще нет рабочих CAN ID.
+    Mgmt::Client mgmt(network_->bus());
+    // assigned хранит, какие ноды уже найдены по MAC и подтвердили назначенный CAN ID.
+    std::vector<bool> assigned(nodeCount, false);
+    const uint32_t startedAt = millis();
+    // Окно ожидания ограничивает BOOT: если нужные ноды не объявились, загрузка остановится.
+    const uint32_t windowMs = bootDiscoveryWindowMs();
+
+    Log::D("[CAN] boot discovery window: nodes=%u timeout=%u ms",
+           static_cast<unsigned>(nodeCount),
+           static_cast<unsigned>(windowMs));
+
+    // Ждем BootHello до тех пор, пока все ноды не будут назначены или не закончится окно BOOT.
+    while (!allBootNodesAssigned(assigned)) {
+        const uint32_t elapsed = millis() - startedAt;
+        if (elapsed >= windowMs) break;
+
+        // Слушаем короткими интервалами, чтобы регулярно проверять общий таймаут окна.
+        const uint32_t remaining = windowMs - elapsed;
+        const uint32_t waitMs = remaining < checkTimeoutMs() ? remaining : checkTimeoutMs();
+
+        Mgmt::BootInfo boot;
+        // BootHello содержит MAC ноды и версию Mgmt-протокола.
+        if (!mgmt.waitForBootHello(boot, waitMs)) {
+            continue;
+        }
+
+        const String mac = macToString(boot.mac);
+        // Версия протокола проверяется до назначения ID, иначе Front32 может говорить с несовместимой нодой.
+        if (boot.protocolVersion != Mgmt::PROTOCOL_VERSION) {
+            return setError(String("CAN boot discovery failed: incompatible Mgmt protocol from MAC ") +
+                            mac + " version=" + String(boot.protocolVersion) +
+                            " expected=" + String(Mgmt::PROTOCOL_VERSION));
+        }
+
+        // MAC из BootHello должен совпасть с одной из уже загруженных и проверенных node_*.json.
+        String nodeName;
+        uint16_t nodeCanID = 0;
+        bool hasPayload = false;
+        if (!Core::config.nodeBootInfoByMac(mac, nodeName, nodeCanID, hasPayload)) {
+            return setError(String("CAN boot discovery failed: unknown node MAC ") + mac);
+        }
+        // Нода без CAN ID или payload считается невалидной: дальше ее нельзя безопасно конфигурировать.
+        if (nodeCanID == 0 || !hasPayload) {
+            return setError(String("CAN boot discovery failed: invalid node config for ") +
+                            nodeName + " MAC " + mac);
+        }
+
+        // Находим индекс ноды, чтобы отметить ее как успешно назначенную.
+        size_t nodeIndex = nodeCount;
+        for (size_t i = 0; i < nodeCount; ++i) {
+            if (Core::config.nodes[i].name == nodeName) {
+                nodeIndex = i;
+                break;
+            }
+        }
+        if (nodeIndex == nodeCount) {
+            return setError(String("CAN boot discovery failed: node config disappeared for MAC ") + mac);
+        }
+        // Повторный BootHello от уже назначенной ноды не ошибка: просто продолжаем ждать остальных.
+        if (assigned[nodeIndex]) {
+            continue;
+        }
+
+        // Назначаем ноде ее рабочий CAN ID из конфига.
+        if (!mgmt.sendAssignCanID(boot.mac, nodeCanID)) {
+            return setError(String("CAN boot discovery failed: AssignCanID send failed for ") +
+                            nodeName + " can=0x" + String(nodeCanID, HEX));
+        }
+        // AssignAck подтверждает, что именно эта нода приняла назначенный CAN ID.
+        if (!mgmt.waitForAssignAck(nodeCanID, ackTimeoutMs())) {
+            return setError(String("CAN boot discovery failed: AssignAck timeout for ") +
+                            nodeName + " can=0x" + String(nodeCanID, HEX) +
+                            " MAC " + mac);
+        }
+
+        assigned[nodeIndex] = true;
+        Log::D("[CAN] boot assigned: %s MAC=%s can=0x%s",
+               nodeName.c_str(),
+               mac.c_str(),
+               String(nodeCanID, HEX).c_str());
+    }
+
+    // Если окно закончилось не для всех нод, BOOT останавливается с перечислением отсутствующих.
+    if (!allBootNodesAssigned(assigned)) {
+        return setError(String("CAN boot discovery timeout, missing nodes: ") +
+                        missingBootNodes(assigned));
+    }
+
+    Log::D("[CAN] boot discovery complete");
     return true;
 }
 
@@ -357,6 +442,40 @@ bool CAN::groupFeedThrowAddress(uint16_t& out) {
 
     out = paperGroup;
     return true;
+}
+
+String CAN::macToString(const Mgmt::MacAddress& mac) const {
+    char buffer[18];
+    snprintf(buffer,
+             sizeof(buffer),
+             "%02X:%02X:%02X:%02X:%02X:%02X",
+             mac.bytes[0],
+             mac.bytes[1],
+             mac.bytes[2],
+             mac.bytes[3],
+             mac.bytes[4],
+             mac.bytes[5]);
+    return String(buffer);
+}
+
+bool CAN::allBootNodesAssigned(const std::vector<bool>& assigned) const {
+    for (bool value : assigned) {
+        if (!value) return false;
+    }
+    return true;
+}
+
+String CAN::missingBootNodes(const std::vector<bool>& assigned) const {
+    String result;
+    for (size_t i = 0; i < assigned.size() && i < Core::config.nodes.size(); ++i) {
+        if (assigned[i]) continue;
+        if (result.length() > 0) result += ", ";
+        result += Core::config.nodes[i].name;
+        result += "(MAC ";
+        result += Core::config.nodes[i].mac;
+        result += ")";
+    }
+    return result;
 }
 
 bool CAN::setError(const String& message) {

@@ -49,14 +49,6 @@ bool build(JsonDocument& doc, const Options& options) {
     JsonObject tuning = root["tuning"].to<JsonObject>();
     detail::fillTuning(tuning);
 
-    JsonObject can = root["CAN"].to<JsonObject>();
-    can["tx"] = 17;
-    can["rx"] = 18;
-    can["bitrate"] = 500;
-    JsonObject timeouts = can["timeouts_ms"].to<JsonObject>();
-    timeouts["ack"] = 150;
-    timeouts["check"] = 300;
-
     JsonArray nodes = root["nodes"].to<JsonArray>();
     if (options.machine == Catalog::MachineType::A) {
         nodes.add("TABLE");
@@ -108,11 +100,6 @@ bool buildNode(JsonDocument& doc, Catalog::MachineType machine, const String& no
     root["mac"] = "00:00:00:00";
     root["canID"] = String("0x") + String(canID, HEX);
     root["settings"].to<JsonObject>();
-
-    JsonObject can = root["CAN"].to<JsonObject>();
-    can["tx"] = 6;
-    can["rx"] = 7;
-    can["bitrate"] = 500;
 
     root["device"].to<JsonObject>();
     return true;

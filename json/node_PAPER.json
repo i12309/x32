@@ -3,14 +3,9 @@
   "machine": "NODE",
   "name": "PAPER",
   "group": "0x220",
-  "mac":"00:00:00:00",
+  "mac":"00:00:00:03",
   "canID":"0x203",
   "settings": {},
-  "CAN":{
-    "tx": 6,
-    "rx": 7,
-    "bitrate": 500
-  },
   "device":{
     "motors": {
       "PAPER": {
