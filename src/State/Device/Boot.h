@@ -238,7 +238,17 @@ private:
     static bool InitCAN() {
         Log::D("BOOT: %s", "CAN boot discovery");
         CanBoot& canBoot = CanBoot::instance();
-        if (canBoot.discover()) {
+        CanBus& canBus = CanBus::instance();
+        if (canBoot.discover(canBus)) {
+            Log::D("BOOT: %s", "CAN config transfer");
+            if (canBoot.configure(canBus)) {
+                return true;
+            }
+            Log::E(" === ERROR CAN Config Transfer: %s", canBoot.lastError().c_str());
+            App::diag().addFatal(State::ErrorCode::CONFIG_ERROR,
+                                 "CAN config transfer failed",
+                                 canBoot.lastError());
+            requestAbort(State::Type::ERROR);
             return true;
         }
         Log::E(" === ERROR CAN Boot Discovery: %s", canBoot.lastError().c_str());
