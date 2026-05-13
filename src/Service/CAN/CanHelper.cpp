@@ -1,6 +1,7 @@
 #include "Service/CAN/CanHelper.h"
 
 #include "Core.h"
+#include "core/Helper.h"
 #include "Service/Log.h"
 
 CanHelper& CanHelper::instance() {
@@ -13,7 +14,7 @@ bool CanHelper::nodeAddress(const char* nodeName, uint16_t& out) {
         return setError("Empty CAN node name");
     }
 
-    if (!Core::config.nodeAddress(nodeName, out) || out == 0) {
+    if (!Core::config.nodeAddress(nodeName, out) || !canfw::isNonZeroCanId(out)) {
         return setError(String("CAN node is not configured: ") + nodeName);
     }
     return true;
@@ -24,7 +25,7 @@ bool CanHelper::nodeGroup(const char* nodeName, uint16_t& out) {
         return setError("Empty CAN node name");
     }
 
-    if (!Core::config.nodeGroup(nodeName, out) || out == 0) {
+    if (!Core::config.nodeGroup(nodeName, out) || !canfw::isNonZeroCanId(out)) {
         return setError(String(nodeName) + " group is not configured");
     }
     return true;

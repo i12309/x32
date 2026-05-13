@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "core/Helper.h"
 #include "config.h"
 #include "Machine/MachineSpec.h"
 #include "Service/Log.h"
@@ -211,29 +212,6 @@ private:
         };
         std::vector<GroupConfig> groups;
         std::vector<NodeConfig> nodes;
-        static bool parseCanIDField(JsonVariantConst value, uint16_t& out, bool allowZero = false) {
-            out = 0;
-            if (value.isNull()) return allowZero;
-            if (value.is<int>()) {
-                const int raw = value.as<int>();
-                if (raw < 0 || raw > 0x7FF) return false;
-                if (!allowZero && raw == 0) return false;
-                out = static_cast<uint16_t>(raw);
-                return true;
-            }
-            const char* text = value | "";
-            if (text == nullptr || text[0] == '\0') return false;
-            char* end = nullptr;
-            const unsigned long raw = strtoul(text, &end, 0);
-            if (end == text || *end != '\0' || raw > 0x7FFUL) return false;
-            if (!allowZero && raw == 0) return false;
-            out = static_cast<uint16_t>(raw);
-            return true;
-        }
-        static uint16_t parseCanID(JsonVariantConst value) {
-            uint16_t out = 0;
-            return parseCanIDField(value, out, true) ? out : 0;
-        }
         static bool isDefaultMac(const String& value) {
             return value == "00:00:00:00";
         }
@@ -301,7 +279,7 @@ private:
             for (const NodeConfig& node : nodes) {
                 if (node.name == nodeName) {
                     out = node.canID;
-                    return out != 0;
+                    return canfw::isNonZeroCanId(out);
                 }
             }
             return false;
@@ -312,7 +290,7 @@ private:
             for (const NodeConfig& node : nodes) {
                 if (node.name == nodeName) {
                     out = node.groupID;
-                    return out != 0;
+                    return canfw::isNonZeroCanId(out);
                 }
             }
             return false;
@@ -337,7 +315,8 @@ private:
                 }
 
                 uint16_t groupId = 0;
-                if (!parseCanIDField(groupObj["canID"], groupId, false)) {
+                if (!canfw::parseCanId(groupObj["canID"] | "", groupId) ||
+                    !canfw::isNonZeroCanId(groupId)) {
                     Log::E("[Config] group '%s' has invalid CAN ID", groupName.c_str());
                     return false;
                 }
@@ -429,12 +408,13 @@ private:
             String nodeMac = nodeDoc["mac"].as<String>();
             nodeMac.trim();
             uint16_t nodeCanID = 0;
-            if (!parseCanIDField(nodeDoc["canID"], nodeCanID, false)) {
+            if (!canfw::parseCanId(nodeDoc["canID"] | "", nodeCanID) ||
+                !canfw::isNonZeroCanId(nodeCanID)) {
                 Log::E("[Config] node %s has invalid canID", path.c_str());
                 return false;
             }
             uint16_t nodeGroupID = 0;
-            if (!parseCanIDField(nodeDoc["group"], nodeGroupID, true)) {
+            if (!canfw::parseCanId(nodeDoc["group"] | "", nodeGroupID)) {
                 Log::E("[Config] node %s has invalid group", path.c_str());
                 return false;
             }
@@ -641,7 +621,8 @@ private:
             name = doc["name"] | "ESP32";
             group = doc["group"] | "";
             mac = doc["mac"] | "";
-            canID = parseCanID(doc["canID"]);
+            canID = 0;
+            canfw::parseCanId(doc["canID"] | "", canID);
             if (!settings.load(doc)) {
                 Log::D("Ошибка загрузки секции settings");
                 return false;

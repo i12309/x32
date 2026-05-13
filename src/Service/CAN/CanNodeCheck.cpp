@@ -1,6 +1,7 @@
 #include "Service/CAN/CanNodeCheck.h"
 
 #include "Core.h"
+#include "core/Helper.h"
 #include "Service/Log.h"
 
 namespace {
@@ -27,7 +28,7 @@ bool CanNodeCheck::checkAfterBoot(CanBus& bus, bool runSelfTest) {
 
     if (runSelfTest) {
         for (const auto& node : Core::config.nodes) {
-            if (node.canID == 0) {
+            if (!canfw::isNonZeroCanId(node.canID)) {
                 return setError(String("CAN node check failed: invalid CAN ID for ") + node.name);
             }
             if (!selfTestNode(mgmt, node.name, node.canID)) {
@@ -37,7 +38,7 @@ bool CanNodeCheck::checkAfterBoot(CanBus& bus, bool runSelfTest) {
     }
 
     for (const auto& node : Core::config.nodes) {
-        if (node.canID == 0) {
+        if (!canfw::isNonZeroCanId(node.canID)) {
             return setError(String("CAN node check failed: invalid CAN ID for ") + node.name);
         }
         if (!waitReadyNode(mgmt, node.name, node.canID)) {

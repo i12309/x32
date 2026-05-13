@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "Core.h"
+#include "core/Helper.h"
 #include "Service/Log.h"
 #include "protocols/mgmt/Mgmt.h"
 
@@ -74,7 +75,7 @@ bool CanBoot::discover(CanBus& bus) {
         if (!Core::config.nodeBootInfoByMac(mac, nodeName, nodeCanID, hasPayload)) {
             return setError(String("CAN boot discovery failed: unknown node MAC ") + mac);
         }
-        if (nodeCanID == 0 || !hasPayload) {
+        if (!canfw::isNonZeroCanId(nodeCanID) || !hasPayload) {
             return setError(String("CAN boot discovery failed: invalid node config for ") +
                             nodeName + " MAC " + mac);
         }
@@ -128,7 +129,7 @@ bool CanBoot::configure(CanBus& bus) {
 
     Mgmt::Client mgmt(bus.network().bus());
     for (const auto& node : Core::config.nodes) {
-        if (node.canID == 0 || node.payload.length() == 0) {
+        if (!canfw::isNonZeroCanId(node.canID) || node.payload.length() == 0) {
             return setError(String("CAN config transfer failed: invalid node config for ") +
                             node.name + " can=0x" + String(node.canID, HEX));
         }

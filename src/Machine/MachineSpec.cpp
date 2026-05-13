@@ -1,5 +1,7 @@
 #include "Machine/MachineSpec.h"
 
+#include "core/Helper.h"
+
 MachineSpec MachineSpec::get(Catalog::MachineType type) {
     switch (type) {
         case Catalog::MachineType::A:
@@ -68,8 +70,8 @@ MachineSpec::Report MachineSpec::validateControllerConfig(
         bool hasDeclaredGroup = false;
         JsonObjectConst groupObj = groups[req.name].as<JsonObjectConst>();
         if (!groupObj.isNull()) {
-            declaredGroupId = parseCanID(groupObj["canID"]);
-            hasDeclaredGroup = declaredGroupId != 0;
+            hasDeclaredGroup = canfw::parseCanId(groupObj["canID"] | "", declaredGroupId) &&
+                               canfw::isNonZeroCanId(declaredGroupId);
         }
         if (!hasDeclaredGroup) {
             const String msg = String("[MachineSpec] required group is missing or invalid: ") + req.name;
@@ -96,7 +98,9 @@ MachineSpec::Report MachineSpec::validateControllerConfig(
             continue;
         }
 
-        if (nodeA->groupID == 0 || nodeB->groupID == 0 || nodeA->groupID != nodeB->groupID) {
+        if (!canfw::isNonZeroCanId(nodeA->groupID) ||
+            !canfw::isNonZeroCanId(nodeB->groupID) ||
+            nodeA->groupID != nodeB->groupID) {
             const String msg = String("[MachineSpec] required group ") + req.name +
                                " needs " + req.nodeA + " and " + req.nodeB +
                                " in the same non-zero group";
@@ -153,24 +157,6 @@ MachineSpec::Report MachineSpec::validateDeviceConfig(JsonObjectConst device) co
         nodeInfos.push_back(info);
     }
     return validateControllerConfig(device, nodeInfos);
-}
-
-uint16_t MachineSpec::parseCanID(JsonVariantConst value) {
-    if (value.isNull()) return 0;
-
-    if (value.is<int>()) {
-        const int raw = value.as<int>();
-        if (raw <= 0 || raw > 0x7FF) return 0;
-        return static_cast<uint16_t>(raw);
-    }
-
-    const char* text = value | "";
-    if (text == nullptr || text[0] == '\0') return 0;
-
-    char* end = nullptr;
-    const unsigned long raw = strtoul(text, &end, 0);
-    if (end == text || *end != '\0' || raw == 0 || raw > 0x7FFUL) return 0;
-    return static_cast<uint16_t>(raw);
 }
 
 bool MachineSpec::arrayHasNode(JsonArrayConst nodes, const String& nodeName) {

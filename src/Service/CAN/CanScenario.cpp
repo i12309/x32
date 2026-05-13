@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "Core.h"
+#include "core/Helper.h"
 #include "Service/Log.h"
 
 namespace {
@@ -32,7 +33,7 @@ bool CanScenario::checkAll() {
 
     bool ok = true;
     for (const auto& node : Core::config.nodes) {
-        if (node.canID == 0) {
+        if (!canfw::isNonZeroCanId(node.canID)) {
             ok = setError(String("CAN node is not configured: ") + node.name) && ok;
             continue;
         }
@@ -46,7 +47,7 @@ bool CanScenario::stopAll() {
 
     bool ok = true;
     for (const auto& node : Core::config.nodes) {
-        if (node.canID != 0) {
+        if (canfw::isNonZeroCanId(node.canID)) {
             ok = bus_.network().device<Scenario::Client>(node.canID).cancel(kAckTimeoutMs) && ok;
         }
     }

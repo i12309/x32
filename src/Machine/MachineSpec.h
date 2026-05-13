@@ -71,7 +71,6 @@ private:
     static MachineSpec makeUnknown();
     static MachineSpec makeA();
 
-    static uint16_t parseCanID(JsonVariantConst value);
     static bool arrayHasNode(JsonArrayConst nodes, const String& nodeName);
     static const NodeInfo* findNode(const std::vector<NodeInfo>& nodes, const String& nodeName);
 };
